@@ -5,6 +5,8 @@ import os
 import glob
 import re
 import string
+import json
+import googletrans as gt
 #api functions, get data from outside sources in order to study flashcards
 
 def parse (sentence):
@@ -96,14 +98,16 @@ def get_sentences ():
 
 def write_to_output ():
     input = get_sentences()
-    file_names = list(input.keys())
-    for name in file_names:
-        
-        break
+    for name, sentences in input:
+        for sentence in sentences:
+            translation  = gt.translate(sentence, 'en', 'ja')
+            full_sentence = ' '.join(parse(sentence))
+            print(translation, full_sentence)
+            break
 
     output = {}
     return output
 def write_to_database ():
     
     return
-print(get_sentences())
+write_to_output()
