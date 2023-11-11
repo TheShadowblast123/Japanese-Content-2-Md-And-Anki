@@ -18,7 +18,9 @@
       "iKnow! Sentences": "Expression",
       "iKnow! Vocabulary": "Expression"
     },
-    "CONTEXT_FIELDS": {},
+    "CONTEXT_FIELDS": {
+      "Basic": "Back"
+    },
     "FOLDER_DECKS": {},
     "FOLDER_TAGS": {},
     "Syntax": {
@@ -45,9 +47,9 @@
   },
   "Added Media": [],
   "File Hashes": {
-    "Kanji.md": "e52b5afb5e2d1297b954531cd2b733c2",
-    "Words.md": "f5f987b34f4734e1ba9ec9941faae315",
-    "Sentences.md": "885a6d6be6adc61e78ec0bc95de1e6d3"
+    "Kanji.md": "b27353ebe161402b626c29e0f330d377",
+    "Words.md": "fd0637df71c8e8b36109be5e10a591c2",
+    "Sentences.md": "4e02c131d3c0d38098a1306a98531d33"
   },
   "fields_dict": {
     "Basic": [
