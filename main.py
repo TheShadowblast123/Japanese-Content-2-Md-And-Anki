@@ -9,10 +9,10 @@ import googletrans as gt
 import time
 from concurrent.futures import ThreadPoolExecutor
 
-def parse (sentence):
+def parse_sentence(sentence):
     mecab = MeCab.Tagger("-O wakati")
     return mecab.parse(sentence).split()
-def kanji (kanji):
+def kanji_data(kanji):
     request = Kanji.request(kanji)
     try:
         data = request.data
@@ -27,7 +27,7 @@ def kanji (kanji):
         return output
     except:
         return
-def word (word):
+def word_data(word):
     request = Word.request(word)
     try:
         defintions = []
@@ -49,44 +49,39 @@ def intake_content ():
     new_content_path = './New Content'
     output_path = './Output'
 
-
-    
     txt_files = glob.glob(os.path.join(new_content_path, "*.txt"))
     if txt_files == []:
         print(f'You have no new sources place .txt files in {new_content_path} in order to begin')
-        return txt_files
+        return
     for txt_file in txt_files:
         name = os.path.basename(txt_file)
         with open(txt_file, "r", encoding='UTF8') as file:
-
             file_contents = file.read()
             result = re.sub(r'[A-Za-z0-9]', '', file_contents).replace(' ', '')
             if len(result) > 0:
                 output[name] = result
     return output
-
 def get_sentences ():
     punctuation = list(string.punctuation +'\n')
     sources = intake_content()
-    for k, v in sources.items():
+    for name, content in sources.items():
         output = {}
         sentence = ''
-        for c in v:
+        for c in content:
             if c not in punctuation:
                 sentence += c
             else:
                 if sentence:
-                    if k not in output:
-                        output[k] = []
-                    output[k].append(sentence)
+                    if name not in output:
+                        output[name] = []
+                    output[name].append(sentence)
                     sentence = ''
-    for k, v in sources.items():
-        if k not in output:
-            output[k] = []
+    for name, content in sources.items():
+        if name not in output:
+            output[name] = []
         if sentence:
-            output[k].append(sentence)
+            output[name].append(sentence)
     return output
-
 def write_to_output ():
     input = get_sentences()
     for name, sentences in input.items():
@@ -100,7 +95,7 @@ def write_to_output ():
                future.result()
     return
 def process_sentence(sentence, tag_name):
-    parsed = parse(sentence)
+    parsed = parse_sentence(sentence)
     formatted_sentence = [f'[[{w}]]' for w in parsed]
     translation = gt.translate(sentence, 'en', 'ja')
     markdown_sentence = f'\nSTARTI [Basic] {formatted_sentence} Back: {translation} Tags: {tag_name}  ENDI\n'
@@ -120,19 +115,19 @@ def write_notes(markdown_sentence, parsed_sentence, name):
             file.write(markdown_sentence)
     #sentence has ben written
     for w in parsed_sentence:
-        add_word(w, name)
+        add_word_data(w, name)
         if w[0] not in kana_punctuation_chars:
             kanji_list = ''.join(c for c in w if c not in kana_punctuation_chars)
             for item in kanji_list:
-                k = kanji(item)
-                add_kanji(k, w, name)
+                k = kanji_data(item)
+                add_kanji_data(k, w, name)
         
     return
-def add_word (w, source):
+def add_word_data(w, source):
     path_to_words = 'Notes\Japanese Notes\Words.md'
     path_to_report = 'Output\\report.txt'
     try:
-        word_data = word(w)
+        word_data = word_data(w)
     except:
         return
     if word_data is not None:
@@ -159,7 +154,7 @@ def add_word (w, source):
         with open(path_to_report, "a", encoding="utf-8") as file:
             file.write(f"couldn't resolve issue with the folliwing, in {source}.txt, Look it up: {w}\n")
         return
-def add_kanji (k, w, source):
+def add_kanji_data(k, w, source):
     path_to_kanji = 'Notes\Japanese Notes\Kanji.md'
     path_to_report = 'Output\\report.txt'
 
