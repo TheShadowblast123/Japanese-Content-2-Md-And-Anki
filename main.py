@@ -8,10 +8,174 @@ import string
 import googletrans as gt
 import time
 from concurrent.futures import ThreadPoolExecutor
-
-def parse_sentence(sentence):
+import queue
+old_kanji = []
+old_words = []
+pos = 0
+global content_md, kanji_md, sentences_md, words_md, content_path, kanji_path, sentences_path, words_path
+content_md = "Notes\Japanese Notes\Content.md"
+kanji_md = "Notes\Japanese Notes\Kanji.md"
+sentences_md = "Notes\Japanese Notes\Sentences.md"
+words_md = "Notes\Japanese Notes\Words.md"
+content_path = "Notes\Japanese Notes\Content"
+kanji_path = "Notes\Japanese Notes\Kanji"
+sentences_path = "Notes\Japanese Notes\Sentences"
+words_path = "Notes\Japanese Notes\Words"
+kanji_range_1, kanji_range_2, kanji_range_3 = (0x3400, 0x4DB5),(0x4E00,0x9FCB), (0xF900, 0xFA6A)
+kanji_set_1, kanji_set_2, kanji_set_3 = [chr(c) for c in range(*kanji_range_1)], [chr(c) for c in range(*kanji_range_2)], [chr(c) for c in range(*kanji_range_3)]
+kanji_set = kanji_set_1 + kanji_set_2 + kanji_set_3
+def parser(item) -> list[str]:
     mecab = MeCab.Tagger("-O wakati")
-    return mecab.parse(sentence).split()
+    return mecab.parse(item).split()
+
+def intake_content ():
+    output = {}
+    new_content_path = './New Content'
+
+
+    txt_files = glob.glob(os.path.join(new_content_path, "*.txt"))
+    if txt_files == []:
+        print(f'You have no new sources place .txt files in {new_content_path} in order to begin')
+        return
+    for txt_file in txt_files:
+        name = replace_spaces(os.path.basename(txt_file))
+        with open(txt_file, "r", encoding='UTF8') as file:
+            lines = file.readlines()
+            file.close()
+        unique = []
+        for line in lines:
+            if line not in unique:
+                temp = re.sub(r'[A-Za-z0-9]', '', line).replace(' ', '')
+                if len(temp) > 0:
+                    unique.append(temp)
+            continue
+        output[name] = unique
+    return output
+def get_sentences ():
+    punctuation = list(string.punctuation +'\n')
+    sources = intake_content()
+    for name, content in sources.items():
+        output = {}
+        sentence = ''
+        for c in content:
+            if c not in punctuation:
+                sentence += c
+            else:
+                if sentence:
+                    if name not in output:
+                        output[name] = []
+                    output[name].append(sentence)
+                    sentence = ''
+    for name, content in sources.items():
+        if name not in output:
+            output[name] = []
+        if sentence:
+            output[name].append(sentence)
+            
+    return output
+
+
+
+def replace_spaces (tag : str) -> str:
+    return tag.replace(' ', '_')
+def append_content(name : str):
+    with open(content_md, 'a+') as file:
+        file.write(f'[{name}]({content_path}\{name}.md)\n')
+        file.close()
+        #we assume the content is new no matter what
+    return
+def append_sentence(sentence : str):
+    with open(sentences_md, 'a+') as file:
+        temp = file.readlines()
+        if f'[{sentence}]' not in temp:
+            file.write(f'[{sentence}]({sentences_path}\{sentence}.md)\n')
+            return False
+        file.close()
+    return True
+def append_word(word : str):
+    with open(words_md, 'a+') as file:
+        temp = file.readlines()
+        if f'[{word}]' not in temp:
+            file.write(f'[{word}]({words_path}\{word}.md)\n')
+            file.close()
+            return False
+        file.close()
+    return True
+def append_kanji(kanji : str):
+    with open(kanji_md, 'a+') as file:
+        temp = file.readlines()
+        if f'[{kanji}]' not in temp:
+            file.write(f'[{kanji}]({kanji_path}\{kanji}.md)\n')
+            file.close()
+            return False
+        file.close()
+    return True
+
+def edit_tags(root_path : str, tag : str, edit_list : list[str]):
+    for item in edit_list:
+        tag = replace_spaces(tag)
+        with open (f'{root_path}\{item}.md', 'w+') as file:
+            lines = file.readlines()
+            for line in lines:
+                if 'Tags: ' in line:
+                    lines[lines.index(line)] = line + f'{tag} '
+                    break
+                continue
+            file.writelines(lines)
+            file.close()
+    return
+def write_to_kanji(l :list[str]):
+    edit_kanji_list = []
+    for k in l:
+        if append_kanji(k):
+            edit_kanji_list.append(l.pop(k))
+    return edit_kanji_list
+def write_to_words(l :list[str]):
+    edit_words_list = []
+    for k in l:
+        if append_kanji(k):
+            edit_words_list.append(l.pop(k))
+    return edit_words_list
+def write_to_sentences(l :list[str]):
+    edit_sentences_list = []
+    for k in l:
+        if append_sentence(k):
+            edit_sentences_list.append(l.pop(k))
+    return edit_sentences_list
+
+def sentence_card(data : dict, content : string)-> list[str]:
+    output = [] * 7
+    output[0] = 'TARGET DECK: Sentences'
+    output[1] = 'START'
+    output[2] = 'Basic'
+    output[3] = f'{data["sentence"]}'
+    output[4] = 'Back ' + f'{data["translation"]}'
+    output[5] = f'Tags: {content}'
+    output[6] = 'END'
+    return output 
+def word_card(data : dict, content : string) -> list[str]: 
+    output = [] * 8
+    output[0] = 'TARGET DECK: Words'
+    output[1] = 'START'
+    output[2] = 'Basic'
+    output[3] = f'{data["word"]}'
+    output[4] = 'Back ' + f'{data["definitions"]}'
+    output[5] = f'{data["reading"]}'
+    output[6] = f'Tags: {content}'
+    output[7] = 'END'
+    return output
+def kanji_card(data : dict, content : string)-> list[str]:
+    output = [] * 9
+    output[0] = 'TARGET DECK: Kanji'
+    output[1] = 'START'
+    output[2] = 'Basic'
+    output[3] = f'{data["kanji_"]}, {data["strokes"]}'
+    output[4] = 'Back ' + f'{data["keyword"]}'
+    output[5] = f'{data["readings"]}'
+    output[6] = f'{data["radicals"]}'
+    output[7] = f'Tags: {content}'
+    output[8] = 'END'
+    return output
 def kanji_data(kanji):
     request = Kanji.request(kanji)
     try:
@@ -44,148 +208,71 @@ def word_data(word):
         return output
     except:
         return
-def intake_content ():
-    output = {}
-    new_content_path = './New Content'
-    output_path = './Output'
+def sentence_data(sentence : str):
+    output = {
+        'sentence' : sentence,
+        'translation' : gt.translate(sentence, 'en', 'ja'),
 
-    txt_files = glob.glob(os.path.join(new_content_path, "*.txt"))
-    if txt_files == []:
-        print(f'You have no new sources place .txt files in {new_content_path} in order to begin')
-        return
-    for txt_file in txt_files:
-        name = os.path.basename(txt_file)
-        with open(txt_file, "r", encoding='UTF8') as file:
-            file_contents = file.read()
-            result = re.sub(r'[A-Za-z0-9]', '', file_contents).replace(' ', '')
-            if len(result) > 0:
-                output[name] = result
+    }
     return output
-def get_sentences ():
-    punctuation = list(string.punctuation +'\n')
-    sources = intake_content()
-    for name, content in sources.items():
-        output = {}
-        sentence = ''
-        for c in content:
-            if c not in punctuation:
-                sentence += c
-            else:
-                if sentence:
-                    if name not in output:
-                        output[name] = []
-                    output[name].append(sentence)
-                    sentence = ''
-    for name, content in sources.items():
-        if name not in output:
-            output[name] = []
-        if sentence:
-            output[name].append(sentence)
-    return output
-def write_to_output ():
-    input = get_sentences()
-    for name, sentences in input.items():
-        unique_sentences = list(set(sentences))
-        tag_name = os.path.splitext(name)[0]
-        with ThreadPoolExecutor() as executor:
-            futures = [executor.submit(process_sentence, sentence, tag_name) for sentence in unique_sentences]
-
-            # Wait for all tasks to complete
-            for future in futures:
-               future.result()
+def write_card(lines : list, path : string):
+    with open(path, 'w') as file:
+        file.writelines([f'{s}\n' for s in lines])
     return
-def process_sentence(sentence, tag_name):
-    parsed = parse_sentence(sentence)
-    formatted_sentence = [f'[[{w}]]' for w in parsed]
-    translation = gt.translate(sentence, 'en', 'ja')
-    markdown_sentence = f'\nSTARTI [Basic] {formatted_sentence} Back: {translation} Tags: {tag_name}  ENDI\n'
-    write_notes(markdown_sentence, parsed, tag_name)
-    return
-def write_notes(markdown_sentence, parsed_sentence, name):
-    hiragana_range, katakana_range, punctuation_range_one, punctuation_range_two = (0x3041, 0x3096), (0x30A0, 0x30FF), (0xFF01, 0xFF5E), (0x3000, 0x303F)
-    hiragana_chars, katakana_chars, punctuation_range_one, punctuation_range_two = [chr(c) for c in range(*hiragana_range)], [chr(c) for c in range(*katakana_range)], [chr(c) for c in range(*punctuation_range_one)], [chr(c) for c in range(*punctuation_range_two)]
+def write_sentence_cards(sentences : list[str], content : str):
+    for sentence in sentences:
+        write_card(sentence_card(sentence_data(sentence), content), f'{sentences_path}\{sentence}.md')
+def write_word_cards(words : list[str], content : str):
+    for word in words:
+        write_card(word_card(word_data(word), content), f'{words_path}\{word}.md')
+def write_kanji_cards(kanjis : list[str], content : str):
+    for kanji in kanjis:
+        write_card(kanji_card(kanji_data(kanji), content), f'{kanji_path}\{kanji}.md')
 
-    kana_punctuation_chars = katakana_chars + hiragana_chars + punctuation_range_one + punctuation_range_two
-    path_to_sentence = 'Notes\Japanese Notes\Sentences.md'
+    return
+
+
+
+
+
+new_content = get_sentences()
+for name, sentences in new_content.items():
+    temp : str
+    for sentence in sentences:
+        temp += sentence
+    words = parser(temp)
+    kanji_list_temp = [k for k in kanji_set if k in temp]
+    kanji_list = []
+    for k in kanji_list_temp:
+        if k not in kanji_list:
+            kanji_list.append(k)
+    #handle first parallel, write to {langpart}.md and add duplicates to a list for editing tags and remove them for the orignal list
+    with ThreadPoolExecutor(max_workers=4) as executor:
+        future_a = executor.submit(append_content)
+        future_b = executor.submit(write_to_sentences, sentences)
+        future_c = executor.submit(write_to_words, words)
+        future_d = executor.submit(write_to_kanji, kanji_list)
     
-    with open(path_to_sentence, "r+", encoding="utf-8") as file:
-        existing_content = file.read()
-        if markdown_sentence not in existing_content:
-            file.seek(0, 2)
-            file.write(markdown_sentence)
-    #sentence has ben written
-    for w in parsed_sentence:
-        add_word_data(w, name)
-        if w[0] not in kana_punctuation_chars:
-            kanji_list = ''.join(c for c in w if c not in kana_punctuation_chars)
-            for item in kanji_list:
-                k = kanji_data(item)
-                add_kanji_data(k, w, name)
-        
-    return
-def add_word_data(w, source):
-    path_to_words = 'Notes\Japanese Notes\Words.md'
-    path_to_report = 'Output\\report.txt'
-    try:
-        word_data = word_data(w)
-    except:
-        return
-    if word_data is not None:
-        write = ''
-        with open(path_to_words, "r+", encoding="utf-8") as file:
-            existing_content = file.read()
-            if w not in existing_content:
-                write = f'\nSTART\n Basic\n {word_data["word"]}\n Back: {word_data["definitions"]}\n {word_data["reading"]}\n Tags: {source} \n END\n'
-                file.seek(0, 2)
-                file.write(write)
-                return
-            else:
-                start_pos = existing_content.find(w)
-                tags_pos = existing_content.rfind("Tags:", 0, start_pos)
-                tags_end_pos = existing_content.find("\n", tags_pos)
-                existing_tags = existing_content[tags_pos:tags_end_pos]
+        executor.shutdown(wait=True)
+        edit_sentences = future_b.result()
+        edit_words = future_c.result()
+        edit_kanji = future_d.result()
+    #handle second parralel, edit the tags if applicable
+    with ThreadPoolExecutor(max_workers=3) as executor:
+        future_b = executor.submit(edit_tags, edit_sentences)
+        future_c = executor.submit(edit_tags, edit_words)
+        future_d = executor.submit(edit_tags, edit_kanji)
+    
+        executor.shutdown(wait=True)
+    #handle third parrallel, write the flashcards, queue api calls, add fail searches to a dict
+    with ThreadPoolExecutor(max_workers=3) as executor:
+        task_queue = queue.Queue()
 
-                write = f"{existing_tags} {source}"
+        future_b = executor.submit(write_sentence_cards, sentences, name)
+        future_c = executor.submit(write_word_cards, words, name)
+        future_d = executor.submit(write_kanji_cards, kanji_list, name)
+    
+        executor.shutdown(wait=True)
 
-                file.seek(tags_pos)
-                file.write(write)
-                return
-    else:
-        with open(path_to_report, "a", encoding="utf-8") as file:
-            file.write(f"couldn't resolve issue with the folliwing, in {source}.txt, Look it up: {w}\n")
-        return
-def add_kanji_data(k, w, source):
-    path_to_kanji = 'Notes\Japanese Notes\Kanji.md'
-    path_to_report = 'Output\\report.txt'
-
-    if k is not None:
-        write = ''
-        with open(path_to_kanji, "r+", encoding="utf-8") as file:
-            existing_content = file.read()
-            if k["kanji_"] not in existing_content:
-                write = f'\nSTART\n Basic\n {k["kanji_"]}, {k["strokes"]}\n Back: {k["keyword"]}\n {k["readings"]}\n {k["radicals"]}\n Tags: {w} \n END\n'
-                file.seek(0, 2)
-                file.write(write)
-                return
-            else:
-                start_pos = existing_content.find(k)
-                tags_pos = existing_content.rfind("Tags:", 0, start_pos)
-                tags_end_pos = existing_content.find("\n", tags_pos)
-                existing_tags = existing_content[tags_pos:tags_end_pos]
-
-                write = f"{existing_tags} {w}"
-
-                file.seek(tags_pos)
-                file.write(write)
-                return
-    else:
-        with open(path_to_report, "a", encoding="utf-8") as file:
-            file.write(f"couldn't resolve issue with the folliwing, in {source}.txt, Look it up: {k['kanji_']} from {w}\n")
-        return
-start_time = time.time()
-if __name__ == "__main__":
-    write_to_output()
-
-end_time = time.time()
-elapsed_time = end_time - start_time
-print(f"Elapsed time: {elapsed_time} seconds")
+    #write to report.txt and manual_lookup.txt
+    break

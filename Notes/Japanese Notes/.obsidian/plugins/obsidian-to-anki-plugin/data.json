@@ -21,8 +21,14 @@
     "CONTEXT_FIELDS": {
       "Basic": "Back"
     },
-    "FOLDER_DECKS": {},
-    "FOLDER_TAGS": {},
+    "FOLDER_DECKS": {
+      "Sources": "",
+      "Sentences": ""
+    },
+    "FOLDER_TAGS": {
+      "Sources": "",
+      "Sentences": ""
+    },
     "Syntax": {
       "Begin Note": "START",
       "End Note": "END",
@@ -47,9 +53,10 @@
   },
   "Added Media": [],
   "File Hashes": {
-    "Kanji.md": "b27353ebe161402b626c29e0f330d377",
-    "Words.md": "fd0637df71c8e8b36109be5e10a591c2",
-    "Sentences.md": "4e02c131d3c0d38098a1306a98531d33"
+    "Kanji.md": "3a61d09eed2bfd513b553bb03ed494a2",
+    "Words.md": "4836b4e5dcec193d995aca6675929a7e",
+    "Sentences.md": "a19b52547429e07073698d03183b5022",
+    "Content.md": "d41d8cd98f00b204e9800998ecf8427e"
   },
   "fields_dict": {
     "Basic": [
