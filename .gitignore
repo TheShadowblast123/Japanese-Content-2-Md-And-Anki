@@ -1,4 +1,9 @@
 
 Notes/Japanese Notes/.obsidian/
 *.json
-*.pyc
+/__pycache__
+Notes/Japanese Notes/Content
+Notes/Japanese Notes/Kanji
+Notes/Japanese Notes/Sentences
+Notes/Japanese Notes/Words
+/Data
