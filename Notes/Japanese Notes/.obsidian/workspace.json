@@ -8,19 +8,7 @@
         "type": "tabs",
         "children": [
           {
-            "id": "3c9ecdcfe6873fbb",
-            "type": "leaf",
-            "state": {
-              "type": "markdown",
-              "state": {
-                "file": "Kanji.md",
-                "mode": "source",
-                "source": false
-              }
-            }
-          },
-          {
-            "id": "80f425ac282843a2",
+            "id": "92213e8c1cf918d9",
             "type": "leaf",
             "state": {
               "type": "markdown",
@@ -30,21 +18,8 @@
                 "source": false
               }
             }
-          },
-          {
-            "id": "92213e8c1cf918d9",
-            "type": "leaf",
-            "state": {
-              "type": "markdown",
-              "state": {
-                "file": "Sentences.md",
-                "mode": "source",
-                "source": false
-              }
-            }
           }
-        ],
-        "currentTab": 1
+        ]
       }
     ],
     "direction": "vertical"
@@ -168,22 +143,42 @@
       "daily-notes:Open today's daily note": false,
       "templates:Insert template": false,
       "command-palette:Open command palette": false,
-      "obsidian-to-anki-plugin:Obsidian_to_Anki - Scan Vault": false
+      "obsidian-to-anki-plugin:Obsidian_to_Anki - Scan Vault": false,
+      "obisidian-note-linker:Note Linker": false
     }
   },
-  "active": "80f425ac282843a2",
+  "active": "92213e8c1cf918d9",
   "lastOpenFiles": [
-    "Kanji.md",
     "Sentences.md",
+    "Kanji.md",
     "Words.md",
+    "Content.md",
+    "Kanji/怒.md",
+    "Kanji/万.md",
+    "Kanji/屈.md",
+    "Kanji/右.md",
+    "Kanji/中.md",
+    "Kanji/感.md",
+    "Kanji/忘.md",
+    "Kanji/室.md",
+    "Kanji/鳴.md",
+    "Kanji/飽.md",
+    "Kanji/頃.md",
+    "Kanji/降.md",
+    "Kanji/覗.md",
+    "Kanji/繰.md",
+    "Kanji/秒.md",
+    "Kanji/爽.md",
+    "Kanji/蛍.md",
+    "'なか', 'うち', 'あた.る'], ['チュウ'.md",
+    "Kanji/左.md",
+    "Kanji/光.md",
+    "Kanji/女.md",
+    "Kanji/今.md",
     "Content",
     "Words",
     "Kanji",
     "Sentences",
-    "Content.md",
-    "Sources.md",
-    "Sources",
-    "て.md",
-    "漢字.md"
+    "Sources"
   ]
 }

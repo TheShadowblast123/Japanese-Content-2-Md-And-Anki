@@ -8,11 +8,11 @@ import string
 import googletrans as gt
 import time
 from concurrent.futures import ThreadPoolExecutor
-import queue
 old_kanji = []
 old_words = []
-pos = 0
 global content_md, kanji_md, sentences_md, words_md, content_path, kanji_path, sentences_path, words_path
+global current_name
+current_name = ''
 content_md = "Notes\Japanese Notes\Content.md"
 kanji_md = "Notes\Japanese Notes\Kanji.md"
 sentences_md = "Notes\Japanese Notes\Sentences.md"
@@ -30,7 +30,7 @@ def parser(item) -> list[str]:
 
 def intake_content ():
     output = {}
-    new_content_path = './New Content'
+    new_content_path = "./New Content"
 
 
     txt_files = glob.glob(os.path.join(new_content_path, "*.txt"))
@@ -38,18 +38,18 @@ def intake_content ():
         print(f'You have no new sources place .txt files in {new_content_path} in order to begin')
         return
     for txt_file in txt_files:
-        name = replace_spaces(os.path.basename(txt_file))
+        name = replace_spaces(os.path.basename(txt_file)).strip('.txt')
         with open(txt_file, "r", encoding='UTF8') as file:
             lines = file.readlines()
             file.close()
-        unique = []
+        blob = ''
         for line in lines:
-            if line not in unique:
+            if line not in blob:
                 temp = re.sub(r'[A-Za-z0-9]', '', line).replace(' ', '')
                 if len(temp) > 0:
-                    unique.append(temp)
+                    blob += temp
             continue
-        output[name] = unique
+        output[name] = blob
     return output
 def get_sentences ():
     punctuation = list(string.punctuation +'\n')
@@ -64,54 +64,60 @@ def get_sentences ():
                 if sentence:
                     if name not in output:
                         output[name] = []
-                    output[name].append(sentence)
+                    if sentence not in output[name]:
+                        output[name].append(sentence)
                     sentence = ''
     for name, content in sources.items():
         if name not in output:
             output[name] = []
         if sentence:
             output[name].append(sentence)
-            
+   
     return output
 
 
 
-def replace_spaces (tag : str) -> str:
+def replace_spaces (tag):
     return tag.replace(' ', '_')
-def append_content(name : str):
+def append_content(name):
     with open(content_md, 'a+') as file:
-        file.write(f'[{name}]({content_path}\{name}.md)\n')
+        x = f'{name}\n'
+        file.write(x)
         file.close()
         #we assume the content is new no matter what
     return
-def append_sentence(sentence : str):
-    with open(sentences_md, 'a+') as file:
+def append_sentence(sentence):
+    with open(sentences_md, 'a+',  encoding="utf-8") as file:
         temp = file.readlines()
-        if f'[{sentence}]' not in temp:
-            file.write(f'[{sentence}]({sentences_path}\{sentence}.md)\n')
-            return False
-        file.close()
-    return True
-def append_word(word : str):
-    with open(words_md, 'a+') as file:
-        temp = file.readlines()
-        if f'[{word}]' not in temp:
-            file.write(f'[{word}]({words_path}\{word}.md)\n')
+        if sentence not in temp:
+            x = f'{sentence}\n'
+            file.write(x)
             file.close()
             return False
         file.close()
     return True
-def append_kanji(kanji : str):
-    with open(kanji_md, 'a+') as file:
+def append_word(word):
+    with open(words_md, 'a+', encoding="utf-8") as file:
         temp = file.readlines()
-        if f'[{kanji}]' not in temp:
-            file.write(f'[{kanji}]({kanji_path}\{kanji}.md)\n')
+        if word not in temp:
+            x = f'{word}\n'
+            file.write(x)
+            file.close()
+            return False
+        file.close()
+    return True
+def append_kanji(kanji):
+    with open(kanji_md, 'a+', encoding="utf-8") as file:
+        temp = file.readlines()
+        if kanji not in temp:
+            x = f'{kanji}\n'
+            file.write(x)
             file.close()
             return False
         file.close()
     return True
 
-def edit_tags(root_path : str, tag : str, edit_list : list[str]):
+def edit_tags(root_path, tag, edit_list):
     for item in edit_list:
         tag = replace_spaces(tag)
         with open (f'{root_path}\{item}.md', 'w+') as file:
@@ -124,58 +130,64 @@ def edit_tags(root_path : str, tag : str, edit_list : list[str]):
             file.writelines(lines)
             file.close()
     return
-def write_to_kanji(l :list[str]):
+def write_to_kanji(l):
     edit_kanji_list = []
     for k in l:
         if append_kanji(k):
             edit_kanji_list.append(l.pop(k))
     return edit_kanji_list
-def write_to_words(l :list[str]):
+def write_to_words(l):
     edit_words_list = []
     for k in l:
-        if append_kanji(k):
+        if append_word(k):
             edit_words_list.append(l.pop(k))
     return edit_words_list
-def write_to_sentences(l :list[str]):
+def write_to_sentences(l):
     edit_sentences_list = []
     for k in l:
         if append_sentence(k):
             edit_sentences_list.append(l.pop(k))
     return edit_sentences_list
 
-def sentence_card(data : dict, content : string)-> list[str]:
-    output = [] * 7
-    output[0] = 'TARGET DECK: Sentences'
-    output[1] = 'START'
-    output[2] = 'Basic'
-    output[3] = f'{data["sentence"]}'
-    output[4] = 'Back ' + f'{data["translation"]}'
-    output[5] = f'Tags: {content}'
-    output[6] = 'END'
-    return output 
-def word_card(data : dict, content : string) -> list[str]: 
-    output = [] * 8
-    output[0] = 'TARGET DECK: Words'
-    output[1] = 'START'
-    output[2] = 'Basic'
-    output[3] = f'{data["word"]}'
-    output[4] = 'Back ' + f'{data["definitions"]}'
-    output[5] = f'{data["reading"]}'
-    output[6] = f'Tags: {content}'
-    output[7] = 'END'
-    return output
-def kanji_card(data : dict, content : string)-> list[str]:
-    output = [] * 9
-    output[0] = 'TARGET DECK: Kanji'
-    output[1] = 'START'
-    output[2] = 'Basic'
-    output[3] = f'{data["kanji_"]}, {data["strokes"]}'
-    output[4] = 'Back ' + f'{data["keyword"]}'
-    output[5] = f'{data["readings"]}'
-    output[6] = f'{data["radicals"]}'
-    output[7] = f'Tags: {content}'
-    output[8] = 'END'
-    return output
+def sentence_card(data):
+    temp = [] * 7
+    sentence = data["sentence"]
+    temp.append('TARGET DECK: Sentences')
+    temp.append('START')
+    temp.append('Basic')
+    temp.append(f'{sentence}')
+    temp.append('Back ' + f'{data["translation"]}')
+    temp.append(f'Tags: {current_name}')
+    temp.append('END')
+    output ='\n'.join(t for t in temp)
+    write_card(output, f'{sentences_path}\{sentence}.md')
+def word_card(data : dict): 
+    temp = [] * 8
+    word = data['word']
+    temp.append('TARGET DECK: Words')
+    temp.append('START')
+    temp.append('Basic')
+    temp.append(f'{data["word"]}')
+    temp.append('Back ' + f'{data["definitions"]}')
+    temp.append(f'{data["reading"]}')
+    temp.append(f'Tags: {current_name}')
+    temp.append('END')
+    output ='\n'.join(t for t in temp)
+    write_card(output, f'{words_path}\{word}.md')
+def kanji_card(data : dict):
+    temp = [] * 9
+    kanji = data['kanji_']
+    temp.append('TARGET DECK: Kanji')
+    temp.append('START')
+    temp.append('Basic')
+    temp.append(f'{kanji}, {data["strokes"]}')
+    temp.append('Back ' + f'{data["keyword"]}')
+    temp.append(f'{data["readings"]}')
+    temp.append(f'{data["radicals"]}')
+    temp.append(f'Tags: {current_name}')
+    temp.append('END')
+    output ='\n'.join(t for t in temp)
+    write_card(output, f'{kanji_path}\{kanji}.md')
 def kanji_data(kanji):
     request = Kanji.request(kanji)
     try:
@@ -208,47 +220,53 @@ def word_data(word):
         return output
     except:
         return
-def sentence_data(sentence : str):
+def sentence_data(sentence):
     output = {
         'sentence' : sentence,
         'translation' : gt.translate(sentence, 'en', 'ja'),
 
     }
     return output
-def write_card(lines : list, path : string):
-    with open(path, 'w') as file:
-        file.writelines([f'{s}\n' for s in lines])
+def write_card(lines : str, path : str):
+    with open(path, 'w',encoding="utf-8") as file:
+        file.write(lines)
     return
-def write_sentence_cards(sentences : list[str], content : str):
+def write_sentence_cards(sentences : list[str]):
     for sentence in sentences:
-        write_card(sentence_card(sentence_data(sentence), content), f'{sentences_path}\{sentence}.md')
-def write_word_cards(words : list[str], content : str):
-    for word in words:
-        write_card(word_card(word_data(word), content), f'{words_path}\{word}.md')
-def write_kanji_cards(kanjis : list[str], content : str):
-    for kanji in kanjis:
-        write_card(kanji_card(kanji_data(kanji), content), f'{kanji_path}\{kanji}.md')
-
+        sentence_card(sentence_data(sentence))
     return
 
-
-
-
+def write_word_cards(words : list[str]):
+    for word in words:
+        word_card(word_data(word))
+    return
+def write_kanji_cards(kanjis : list[str]):
+    for kanji in kanjis:
+        kanji_card(kanji_data(kanji))
+    return
 
 new_content = get_sentences()
 for name, sentences in new_content.items():
-    temp : str
+    current_name = name
+    temp = ''
     for sentence in sentences:
         temp += sentence
-    words = parser(temp)
+    words = []
+    words_temp = parser(temp)
+    
+    for w in words_temp:
+        if w not in words:
+            words.append(w)
+
     kanji_list_temp = [k for k in kanji_set if k in temp]
     kanji_list = []
     for k in kanji_list_temp:
         if k not in kanji_list:
             kanji_list.append(k)
+    
     #handle first parallel, write to {langpart}.md and add duplicates to a list for editing tags and remove them for the orignal list
-    with ThreadPoolExecutor(max_workers=4) as executor:
-        future_a = executor.submit(append_content)
+    with ThreadPoolExecutor() as executor:
+        future_a = executor.submit(append_content, name)
         future_b = executor.submit(write_to_sentences, sentences)
         future_c = executor.submit(write_to_words, words)
         future_d = executor.submit(write_to_kanji, kanji_list)
@@ -257,22 +275,12 @@ for name, sentences in new_content.items():
         edit_sentences = future_b.result()
         edit_words = future_c.result()
         edit_kanji = future_d.result()
-    #handle second parralel, edit the tags if applicable
-    with ThreadPoolExecutor(max_workers=3) as executor:
-        future_b = executor.submit(edit_tags, edit_sentences)
-        future_c = executor.submit(edit_tags, edit_words)
-        future_d = executor.submit(edit_tags, edit_kanji)
-    
-        executor.shutdown(wait=True)
-    #handle third parrallel, write the flashcards, queue api calls, add fail searches to a dict
-    with ThreadPoolExecutor(max_workers=3) as executor:
-        task_queue = queue.Queue()
 
-        future_b = executor.submit(write_sentence_cards, sentences, name)
-        future_c = executor.submit(write_word_cards, words, name)
-        future_d = executor.submit(write_kanji_cards, kanji_list, name)
+        executor.map(edit_tags, [edit_sentences, edit_words, edit_kanji])
     
-        executor.shutdown(wait=True)
+        executor.map(write_sentence_cards, sentences)
+        executor.map(write_word_cards, words)
+        executor.map(write_kanji_cards, kanji_list)
 
-    #write to report.txt and manual_lookup.txt
-    break
+        
+        
