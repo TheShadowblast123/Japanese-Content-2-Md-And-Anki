@@ -150,7 +150,7 @@ def write_to_sentences(l):
     return edit_sentences_list
 
 def sentence_card(data):
-    temp = [] * 7
+    temp = [] 
     sentence = data["sentence"]
     temp.append('TARGET DECK: Sentences')
     temp.append('START')
@@ -162,7 +162,7 @@ def sentence_card(data):
     output ='\n'.join(temp)
     write_card(output, f'{sentences_path}\{sentence}.md')
 def word_card(data : dict): 
-    temp = [] * 8
+    temp = []
     word = data['word']
     temp.append('TARGET DECK: Words')
     temp.append('START')
@@ -175,7 +175,7 @@ def word_card(data : dict):
     output ='\n'.join(temp)
     write_card(output, f'{words_path}\{word}.md')
 def kanji_card(data : dict):
-    temp = [] * 9
+    temp = []
     kanji = data['kanji_']
     temp.append('TARGET DECK: Kanji')
     temp.append('START')
@@ -219,7 +219,12 @@ def word_data(word):
         }
         return output
     except:
-        return
+            print(f"Now would be a good time to write to report.txt or something eh? {word} is returning empty")
+            return {
+            'word' : '',
+            'definitions' : [],
+            'reading' : ''
+        }
 def sentence_data(sentence):
     output = {
         'sentence' : sentence,
@@ -287,10 +292,9 @@ for name, sentences in new_content.items():
             executor.map(edit_tags, edit_kanji) 
         executor.shutdown(wait=True)
     with ThreadPoolExecutor() as executor:
-        executor.map(write_sentence_cards, sentences)
-        executor.map(write_word_cards, words)
         executor.map(write_kanji_cards, kanji_list)
+        executor.submit(write_sentence_cards, sentences)
+        executor.submit(write_word_cards, words)
         executor.shutdown(wait=True)
 
-        
         
