@@ -281,8 +281,13 @@ for name, sentences in new_content.items():
         executor.shutdown(wait=True)
     with ThreadPoolExecutor() as executor:
         executor.map(write_sentence_cards, sentences)
+        executor.shutdown(wait=True)
+    with ThreadPoolExecutor() as executor:
         executor.map(write_word_cards, words)
+        executor.shutdown(wait=True)
+    with ThreadPoolExecutor() as executor:
         executor.map(write_kanji_cards, kanji_list)
+        executor.shutdown(wait=True)
 
         
         
