@@ -277,15 +277,16 @@ for name, sentences in new_content.items():
         edit_words = future_c.result()
         edit_kanji = future_d.result()
     with ThreadPoolExecutor() as executor:
-        executor.map(edit_tags, [edit_sentences, edit_words, edit_kanji])
+        if len(edit_sentences) > 0:
+            executor.map(edit_tags, edit_sentences) 
+        if len(edit_words) > 0:
+            executor.map(edit_tags, edit_words) 
+        if len(edit_kanji) > 0:
+            executor.map(edit_tags, edit_kanji) 
         executor.shutdown(wait=True)
     with ThreadPoolExecutor() as executor:
         executor.map(write_sentence_cards, sentences)
-        executor.shutdown(wait=True)
-    with ThreadPoolExecutor() as executor:
         executor.map(write_word_cards, words)
-        executor.shutdown(wait=True)
-    with ThreadPoolExecutor() as executor:
         executor.map(write_kanji_cards, kanji_list)
         executor.shutdown(wait=True)
 
