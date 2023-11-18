@@ -278,7 +278,8 @@ for name, sentences in new_content.items():
         edit_kanji = future_d.result()
     with ThreadPoolExecutor() as executor:
         executor.map(edit_tags, [edit_sentences, edit_words, edit_kanji])
-    
+        executor.shutdown(wait=True)
+    with ThreadPoolExecutor as executor:
         executor.map(write_sentence_cards, sentences)
         executor.map(write_word_cards, words)
         executor.map(write_kanji_cards, kanji_list)
