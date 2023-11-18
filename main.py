@@ -272,10 +272,11 @@ for name, sentences in new_content.items():
         future_d = executor.submit(write_to_kanji, kanji_list)
     
         executor.shutdown(wait=True)
+
         edit_sentences = future_b.result()
         edit_words = future_c.result()
         edit_kanji = future_d.result()
-
+    with ThreadPoolExecutor() as executor:
         executor.map(edit_tags, [edit_sentences, edit_words, edit_kanji])
     
         executor.map(write_sentence_cards, sentences)
