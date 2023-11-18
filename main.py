@@ -159,7 +159,7 @@ def sentence_card(data):
     temp.append('Back ' + f'{data["translation"]}')
     temp.append(f'Tags: {current_name}')
     temp.append('END')
-    output ='\n'.join(t for t in temp)
+    output ='\n'.join(temp)
     write_card(output, f'{sentences_path}\{sentence}.md')
 def word_card(data : dict): 
     temp = [] * 8
@@ -172,7 +172,7 @@ def word_card(data : dict):
     temp.append(f'{data["reading"]}')
     temp.append(f'Tags: {current_name}')
     temp.append('END')
-    output ='\n'.join(t for t in temp)
+    output ='\n'.join(temp)
     write_card(output, f'{words_path}\{word}.md')
 def kanji_card(data : dict):
     temp = [] * 9
@@ -186,7 +186,7 @@ def kanji_card(data : dict):
     temp.append(f'{data["radicals"]}')
     temp.append(f'Tags: {current_name}')
     temp.append('END')
-    output ='\n'.join(t for t in temp)
+    output ='\n'.join(temp)
     write_card(output, f'{kanji_path}\{kanji}.md')
 def kanji_data(kanji):
     request = Kanji.request(kanji)
@@ -232,13 +232,13 @@ def write_card(lines : str, path : str):
         file.write(lines)
     return
 def write_sentence_cards(sentences : list[str]):
-    for sentence in sentences:
-        sentence_card(sentence_data(sentence))
+    for s in sentences:
+        sentence_card(sentence_data(s))
     return
 
 def write_word_cards(words : list[str]):
-    for word in words:
-        word_card(word_data(word))
+    for w in words:
+        word_card(word_data(w))
     return
 def write_kanji_cards(kanjis : list[str]):
     for kanji in kanjis:
@@ -263,8 +263,9 @@ for name, sentences in new_content.items():
     for k in kanji_list_temp:
         if k not in kanji_list:
             kanji_list.append(k)
-    
+
     #handle first parallel, write to {langpart}.md and add duplicates to a list for editing tags and remove them for the orignal list
+    
     with ThreadPoolExecutor() as executor:
         future_a = executor.submit(append_content, name)
         future_b = executor.submit(write_to_sentences, sentences)
@@ -276,6 +277,7 @@ for name, sentences in new_content.items():
         edit_sentences = future_b.result()
         edit_words = future_c.result()
         edit_kanji = future_d.result()
+
     with ThreadPoolExecutor() as executor:
         if len(edit_sentences) > 0:
             executor.map(edit_tags, edit_sentences) 
