@@ -51,8 +51,8 @@ def intake_content ():
             continue
         output[name] = blob
         this_content_md = content_path + f'{name}.md'
-        with open(this_content_md, 'w', 'utf8') as file:
-            
+        with open(this_content_md, 'w', encoding='utf8') as file:
+            file.writelines(lines)
             file.close()
     return output
 def get_sentences ():
@@ -314,7 +314,7 @@ for name, sentences in new_content.items():
             executor.submit(edit_tags, edit_sentences) 
         if len(edit_words) > 0:
             executor.submit(edit_tags, edit_words) 
-            
+
         executor.map(write_kanji_cards, kanji_list)
         executor.submit(write_sentence_cards, sentences)
         executor.submit(write_word_cards, words)
