@@ -110,7 +110,7 @@ def append_sentence(sentence):
                 file.close()
                 return True       
         x = f'{sentence}\n'
-        file.write(x)
+        file.write(f'[[{x}]]')
         file.close()
         return False
 def append_word(word):
@@ -121,7 +121,7 @@ def append_word(word):
                 file.close()
                 return True     
         x = f'{word}\n'
-        file.write(x)
+        file.write(f'[[{x}]]')
         file.close()
         return False
 def append_kanji(kanji):
@@ -132,7 +132,7 @@ def append_kanji(kanji):
                 file.close()
                 return True    
         x = f'{kanji}\n'
-        file.write(x)
+        file.write(f'[[{x}]]')
         file.close()
         return False
 
