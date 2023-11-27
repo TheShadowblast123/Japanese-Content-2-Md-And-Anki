@@ -189,7 +189,7 @@ def word_card(data : dict):
     temp.append(f'{word_to_kanji_string(data["word"])}')
     temp.append('Back: ' + f'{data["definitions"]}')
     temp.append(f'{data["reading"]}')
-    temp.append(f'Tags: {current_name}\n')
+    temp.append(f'Tags: [[{current_name}]]\n')
     temp.append('END')
     output ='\n'.join(temp)
     write_card(output, f'{words_path}\{word}.md')
@@ -203,7 +203,7 @@ def kanji_card(data : dict):
     temp.append('Back: ' + f'{data["keyword"]}')
     temp.append(f'{data["readings"]}')
     temp.append(f'{data["radicals"]}')
-    temp.append(f'Tags: {current_name}\n')
+    temp.append(f'Tags: [[{current_name}]]\n')
     temp.append('END')
     output ='\n'.join(temp)
     write_card(output, f'{kanji_path}\{kanji}.md')
@@ -215,7 +215,7 @@ def kanji_data(kanji):
         output = {
             'kanji_' : kanji,
             'keyword' : data.main_meanings[0],
-            'readings' : [main_readings.kun, main_readings.on],
+            'readings' : (*main_readings.kun, *main_readings.on),
             'strokes' : data.strokes,
             'radicals' : data.radical.parts,
         }
@@ -231,6 +231,7 @@ def word_data(word):
             if defintion.parts_of_speech == ['Wikipedia definition']:
                 break
             defintions.append(defintion.english_definitions)
+        
         output = {
             'word' : word,
             'definitions' : defintions,
@@ -240,7 +241,7 @@ def word_data(word):
     except:
             print(f"Now would be a good time to write to report.txt or something eh? {word} is returning empty")
             return {
-            'word' : word,
+            'word' : f'[[word]]',
             'definitions' : [],
             'reading' : ''
         }
@@ -257,7 +258,7 @@ def write_card(lines : str, path : str):
     return
 def write_sentence_cards(sentences : list[str]):
     this_content_md = content_path + f'{name}.md'
-    with open(this_content_md, 'a+', 'utf8') as file:
+    with open(this_content_md, 'a+', encoding='utf8') as file:
         for line in sentences:
             file.write(f'[{line}]' + '\n')
         file.close()
@@ -314,7 +315,9 @@ for name, sentences in new_content.items():
             executor.submit(edit_tags, edit_sentences) 
         if len(edit_words) > 0:
             executor.submit(edit_tags, edit_words) 
-
+        
+        executor.shutdown(wait=True)
+    with ThreadPoolExecutor() as executor:
         executor.map(write_kanji_cards, kanji_list)
         executor.submit(write_sentence_cards, sentences)
         executor.submit(write_word_cards, words)
