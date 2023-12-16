@@ -1,0 +1,179 @@
+## Hello
+- ### こんにちは
+	-  Good afternoon
+	-  afternoon
+	-  casual
+	-  こんにちは
+- ### おはよう
+	-  Good morning
+	-  morning
+	-  casual
+	-  おはよう
+- ### おはようございます
+	-  Good morning
+	-  morning
+	-  formal
+	-  おはようございます
+- ### こんばんは
+	-  Good evening
+	-  evening
+	-  casual
+	-  こんばんは
+- ### お疲れ様です
+	- Thank you for your hard work
+	-  after work or task
+	-  Formal
+	-  おつかれさまで
+- ### お疲れ
+	- Thank you for your hard work
+	-  after work or task
+	- casual
+	- おつかれ
+- ### やあ
+	-  hi
+	-  hi
+	-  casual
+	-  やあ
+- ### どうも
+	-  hello or thank you
+	-  hello or thank you
+	-  casual
+	-  どうも
+- ### よろしくお願いします
+	-  please be kind to me
+	-  first meeting
+	-  formal
+	-  よろしくおおねがいします
+- ### どうぞよろしく
+	-  please be kind to me
+	-  first meeting
+	-  caげんきですか
+- ### どうぞよろしくお願いいたします
+	-  please be kind to me
+	-  first meeting
+	-  informal
+	-  どうぞよろしくおねがいいたします
+- ### ひさしぶり
+	-  Long time no see
+	-  long missed friend
+	-  casual
+	-  ひさしぶり
+- ### こんにちは、元気？
+	-  Good afternoon
+	-  afternoon
+	-  casual
+	-  こんにちは、げんき？
+## Goodbye
+- ### じゃあね
+	-  See you
+	-  casual
+	-  じゃあね
+- ### またね
+	- See you again
+	-  casual
+	-  またね
+- ### さようなら 
+	-  Goodbye
+	-  more final or longer-term
+	-  casual
+	-  さようなら  
+- ### それでは 
+	-  Well then.
+	-  formal
+	-  それでは 
+- ### お疲れ様でした
+	-  Thank you for your hard work.
+	-  collaborative effort or work-related
+	-  casual
+	-  お疲れ様でした 
+- ### じゃまたね
+	-  See you later.
+	-  casual
+	-  じゃまたね
+- ### それではまた
+	-  Well then, see you again.
+	-  formal
+	-  それではまた
+- ### また後でね 
+	-  See you later.
+	-  casual, friendly
+	-  また後でね  
+- ### 行ってきます 
+	-  I'm going.
+	-  casual
+	-  行ってきます
+- ### お先に失礼します
+	-  I'll excuse myself ahead of you.
+	-  when leaving before others
+	-  business formal
+	-  お先に失礼します
+- ### それではお疲れ様でした
+	-  Well then, thank you for your hard work.
+	-  collaborative effort or work-related interaction
+	-  casual
+	-  それではお疲れ様でした
+- ### またどこかで会おうね
+	-  Let's meet somewhere again.
+	-  casual
+	-  またどこかで会おうね 
+- ### ごきげんよう
+	-  Farewell
+	-  formal
+	-  ごきげんよう
+## Goodbye
+- ### じゃあね
+	-  See you
+	-  casual
+	-  じゃあね
+- ### またね
+	- See you again
+	-  casual
+	-  またね
+- ### さようなら 
+	-  Goodbye
+	-  more final or longer-term
+	-  casual
+	-  さようなら  
+- ### それでは 
+	-  Well then.
+	-  formal
+	-  それでは 
+- ### お疲れ様でした
+	-  Thank you for your hard work.
+	-  collaborative effort or work-related
+	-  casual
+	-  お疲れ様でした 
+- ### じゃまたね
+	-  See you later.
+	-  casual
+	-  じゃまたね
+- ### それではまた
+	-  Well then, see you again.
+	-  formal
+	-  それではまた
+- ### また後でね 
+	-  See you later.
+	-  casual, friendly
+	-  また後でね  
+- ### 行ってきます 
+	-  I'm going.
+	-  casual
+	-  行ってきます
+- ### お先に失礼します
+	-  I'll excuse myself ahead of you.
+	-  when leaving before others
+	-  business formal
+	-  お先に失礼します
+- ### それではお疲れ様でした
+	-  Well then, thank you for your hard work.
+	-  collaborative effort or work-related interaction
+	-  casual
+	-  それではお疲れ様でした
+- ### またどこかで会おうね
+	-  Let's meet somewhere again.
+	-  casual
+	-  またどこかで会おうね 
+- ### ごきげんよう
+	-  Farewell
+	-  formal
+	-  ごきげんよう

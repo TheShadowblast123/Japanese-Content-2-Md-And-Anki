@@ -6,7 +6,7 @@ import glob
 import re
 import googletrans as gt
 import string
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ThreadPoolExecutor, wait, ALL_COMPLETED
 old_kanji = []
 old_words = []
 global content_md, kanji_md, sentences_md, words_md, content_path, kanji_path, sentences_path, words_path
@@ -27,7 +27,7 @@ def parser(item) -> list[str]:
     mecab = MeCab.Tagger("-O wakati")
     return mecab.parse(item).split()
 def check_title(title, test):
-    return test == title.replace(' ', '').replace('[', '').replace(']', '')
+    return title == f'[[{test}]]\n'
 def intake_content ():
     output = {}
     new_content_path = "./New Content"
@@ -105,68 +105,149 @@ def append_content(name):
         #we assume the content is new no matter what
     return
 def append_sentence(sentence):
-    with open(sentences_md, 'a+',  encoding="utf-8") as file:
+    with open(sentences_md, 'r+', encoding="utf-8") as file:
         temp = file.readlines()
         for t in temp:
             if check_title(t, sentence):
                 file.close()
-                return True       
-        x = f'[[{sentence}]]\n'
-        file.write(x)
-        file.close()
-        return False
-def append_word(word):
-    with open(words_md, 'a+', encoding="utf-8") as file:
-        temp = file.readlines()
-        for t in temp:
-            if check_title(t, word):
-                file.close()
-                return True     
-        x = f'[[{word}]]\n'
-        file.write(x)
-        file.close()
-        return False
+                return True
+        file.close() 
+    return False
 def append_kanji(kanji):
-    with open(kanji_md, 'a+', encoding="utf-8") as file:
+    with open(kanji_md, 'r+', encoding="utf-8") as file:
         temp = file.readlines()
         for t in temp:
             if check_title(t, kanji):
                 file.close()
                 return True    
-        x = f'[[{kanji}]]\n'
-        file.write(x)
         file.close()
-        return False
-def edit_tags(root_path, tag, edit_list):
+    return False
+def add_new_stuff(kl, wl, sl):
+    temp = []
+    with open(kanji_md, 'r', encoding="utf-8") as file:
+        temp = file.readlines()
+        temp.extend(kl)
+        file.close()
+    with open(kanji_md, 'w', encoding="utf-8") as file:
+        file.writelines(temp)
+        file.close()
+    temp = []
+    with open(words_md, 'r', encoding="utf-8") as file:
+        temp = file.readlines()
+        temp.extend(wl)
+        file.close()
+    with open(words_md, 'w', encoding="utf-8") as file:
+        file.writelines(temp)
+        file.close()
+    temp = []
+    with open(sentences_md, 'r', encoding="utf-8") as file:
+        temp = file.readlines()
+        temp.extend(sl)
+        file.close()
+    with open(sentences_md, 'w', encoding="utf-8") as file:
+        file.writelines(temp)
+        file.close()
+    return
+def append_word(word):
+    with open(words_md, 'r+', encoding="utf-8") as file:
+        temp = file.readlines()
+        for t in temp:
+            if check_title(t, word):
+                file.close()
+                return True
+        file.close() 
+    return False
+
+def debugger(a):
+    breakpoint()
+    print(a)
+    return
+
+def edit_kanji_tags(edit_list):
+
     for item in edit_list:
-        tag = replace_spaces(tag)
-        with open (f'{root_path}\{item}.md', 'w+') as file:
+        lines = []
+        with open (f'{kanji_path}\{item}.md', 'r', encoding='utf8') as file:
             lines = file.readlines()
+
             for line in lines:
                 if 'Tags: ' in line:
-                    lines[lines.index(line)] = line[:-3] + '] ' f'[[{tag}]] '
+
+                    lines[lines.index(line)] = line[:-2] + ' ' f'[[{current_name}]] \n'
                     break
                 continue
-            file.writelines(lines)
             file.close()
+        with open (f'{kanji_path}\{item}.md', 'w', encoding='utf8') as file:
+            file.writelines(lines)
+            file.close
+    return
+def edit_sentence_tags(edit_list):
+    for item in edit_list:
+        lines = []
+        with open (f'{sentences_path}\{item}.md', 'r', encoding='utf8') as file:
+            lines = file.readlines()
+
+            for line in lines:
+                if 'Tags: ' in line:
+
+                    lines[lines.index(line)] = line[:-2] + ' ' f'[[{current_name}]] \n'
+                    break
+                continue
+            file.close()
+        with open (f'{sentences_path}\{item}.md', 'w', encoding='utf8') as file:
+            file.writelines(lines)
+            file.close
+    return
+def edit_words_tags(edit_list):
+    for item in edit_list:
+        lines = []
+        with open (f'{words_path}\{item}.md', 'r', encoding='utf8') as file:
+            lines = file.readlines()
+
+            for line in lines:
+                if 'Tags: ' in line:
+
+                    lines[lines.index(line)] = line[:-2] + ' ' f'[[{current_name}]] \n'
+                    break
+                continue
+            file.close()
+        with open (f'{words_path}\{item}.md', 'w', encoding='utf8') as file:
+            file.writelines(lines)
+            file.close
     return
 def write_to_kanji(l):
     edit_kanji_list = []
-    for k in l:
+    count = 0
+    copy = list(l)
+    for k in copy:
         if append_kanji(k):
-            edit_kanji_list.append(l.pop(k))
+            edit_kanji_list.append(l.pop(count))
+            
+            continue
+        count += 1
     return edit_kanji_list
+
+            
+
 def write_to_words(l):
+    count = 0
     edit_words_list = []
-    for k in l:
+    copy = list(l)
+    for k in copy:
         if append_word(k):
-            edit_words_list.append(l.pop(k))
+            edit_words_list.append(l.pop(count))
+            continue
+        count += 1
     return edit_words_list
-def write_to_sentences(l):
+def write_to_sentences(l : list):
     edit_sentences_list = []
-    for k in l:
+    count = 0
+    copy = list(l)
+    for k in copy:
         if append_sentence(k):
-            edit_sentences_list.append(l.pop(k))
+            edit_sentences_list.append(l.pop(count))
+            continue
+        count += 1
     return edit_sentences_list
 
 def sentence_card(data):
@@ -311,20 +392,26 @@ def main():
             future_b = executor.submit(write_to_sentences, sentences)
             future_c = executor.submit(write_to_words, words)
             future_d = executor.submit(write_to_kanji, kanji_list)
+           
             edit_sentences = future_b.result()
             edit_words = future_c.result()
             edit_kanji = future_d.result()
-
+            kl = [f'[[{x}]]\n' for x in kanji_list]
+            wl = [f'[[{x}]]\n' for x in words]
+            sl = [f'[[{x}]]\n' for x in sentences]
+            add_new_stuff(kl, wl, sl)
             if len(edit_kanji) > 0:
-                executor.map(edit_tags, edit_kanji) 
+                executor.map(edit_kanji_tags, edit_kanji)             
+            
             if len(edit_sentences) > 0:
-                executor.submit(edit_tags, edit_sentences) 
+                executor.submit(edit_sentence_tags, edit_sentences) 
             if len(edit_words) > 0:
-                executor.submit(edit_tags, edit_words) 
-        
+                executor.submit(edit_words_tags, edit_words) 
+            
             executor.map(write_kanji_cards, kanji_list)
             executor.submit(write_sentence_cards, sentences)
             executor.submit(write_word_cards, words)
+            executor.shutdown(wait=True)
         print("Api calls are done, next loop")
 
         

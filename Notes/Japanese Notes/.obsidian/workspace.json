@@ -4,22 +4,35 @@
     "type": "split",
     "children": [
       {
-        "id": "25067fb6446e78c9",
+        "id": "6c3407701214ea19",
         "type": "tabs",
         "children": [
           {
-            "id": "92213e8c1cf918d9",
+            "id": "3dc26794f6431c98",
             "type": "leaf",
             "state": {
               "type": "markdown",
               "state": {
-                "file": "Content.md",
+                "file": "Content/Again_Yui.md",
+                "mode": "source",
+                "source": false
+              }
+            }
+          },
+          {
+            "id": "027f1ca19d53c29c",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "Kanji/夢.md",
                 "mode": "source",
                 "source": false
               }
             }
           }
-        ]
+        ],
+        "currentTab": 1
       }
     ],
     "direction": "vertical"
@@ -38,7 +51,7 @@
             "state": {
               "type": "file-explorer",
               "state": {
-                "sortOrder": "alphabetical"
+                "sortOrder": "byCreatedTimeReverse"
               }
             }
           },
@@ -69,7 +82,7 @@
       }
     ],
     "direction": "horizontal",
-    "width": 300
+    "width": 200
   },
   "right": {
     "id": "32ffd5bf504dfbe9",
@@ -85,11 +98,11 @@
             "state": {
               "type": "backlink",
               "state": {
-                "file": "Content.md",
-                "collapseAll": false,
+                "file": "Kanji/夢.md",
+                "collapseAll": true,
                 "extraContext": false,
                 "sortOrder": "alphabetical",
-                "showSearch": false,
+                "showSearch": true,
                 "searchQuery": "",
                 "backlinkCollapsed": false,
                 "unlinkedCollapsed": true
@@ -102,7 +115,7 @@
             "state": {
               "type": "outgoing-link",
               "state": {
-                "file": "Content.md",
+                "file": "Kanji/夢.md",
                 "linksCollapsed": false,
                 "unlinkedCollapsed": true
               }
@@ -125,7 +138,7 @@
             "state": {
               "type": "outline",
               "state": {
-                "file": "Content.md"
+                "file": "Kanji/夢.md"
               }
             }
           }
@@ -133,7 +146,8 @@
       }
     ],
     "direction": "horizontal",
-    "width": 300
+    "width": 200,
+    "collapsed": true
   },
   "left-ribbon": {
     "hiddenItems": {
@@ -144,41 +158,44 @@
       "templates:Insert template": false,
       "command-palette:Open command palette": false,
       "obsidian-to-anki-plugin:Obsidian_to_Anki - Scan Vault": false,
-      "obisidian-note-linker:Note Linker": false
+      "obisidian-note-linker:Note Linker": false,
+      "translate:Open translation view": false
     }
   },
-  "active": "92213e8c1cf918d9",
+  "active": "027f1ca19d53c29c",
   "lastOpenFiles": [
-    "Sentences.md",
-    "Kanji.md",
-    "Words.md",
-    "Content.md",
-    "Kanji/怒.md",
-    "Kanji/万.md",
-    "Kanji/屈.md",
-    "Kanji/右.md",
-    "Kanji/中.md",
-    "Kanji/感.md",
-    "Kanji/忘.md",
-    "Kanji/室.md",
-    "Kanji/鳴.md",
-    "Kanji/飽.md",
-    "Kanji/頃.md",
-    "Kanji/降.md",
-    "Kanji/覗.md",
-    "Kanji/繰.md",
-    "Kanji/秒.md",
-    "Kanji/爽.md",
-    "Kanji/蛍.md",
-    "'なか', 'うち', 'あた.る'], ['チュウ'.md",
-    "Kanji/左.md",
-    "Kanji/光.md",
-    "Kanji/女.md",
-    "Kanji/今.md",
-    "Content",
+    "Words/追い.md",
+    "Words/墜ち.md",
+    "Words/求める.md",
+    "Words/握っ.md",
+    "Words/眩し.md",
+    "Words/遠い.md",
+    "Words/いざなう.md",
+    "Words/駆け出.md",
+    "Words/蹴っ.md",
+    "Words/け.md",
+    "Words/あ.md",
+    "Words/共鳴.md",
+    "Words/呼吸.md",
+    "Words/鼓動.md",
+    "Words/高鳴る.md",
+    "Words/振り返る.md",
+    "Words/捨て.md",
+    "Words/ほら.md",
+    "Words/カゴ.md",
+    "Words/見飽き.md",
+    "Words/古い.md",
+    "Words/錆び.md",
+    "Words/音.md",
+    "Words/尽き.md",
+    "Words/愛想.md",
+    "Words/ほど.md",
+    "Conversational Flow Chart/Greetings",
+    "Conversational Flow Chart",
     "Words",
-    "Kanji",
     "Sentences",
+    "Kanji",
+    "Content",
     "Sources"
   ]
 }

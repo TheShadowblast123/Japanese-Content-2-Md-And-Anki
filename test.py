@@ -1,10 +1,8 @@
-kanji_range_1, kanji_range_2, kanji_range_3 = (0x3400, 0x4DB5),(0x4E00,0x9FCB), (0xF900, 0xFA6A)
-kanji_set_1, kanji_set_2, kanji_set_3 = [chr(c) for c in range(*kanji_range_1)], [chr(c) for c in range(*kanji_range_2)], [chr(c) for c in range(*kanji_range_3)]
-kanji_set = kanji_set_1 + kanji_set_2 + kanji_set_3
-import re
+tag = "ikimono-gakari_sakura"
+test = "TARGET DECK: Kanji\nSTART\nBasic\n中, 4\nBack: in\n('なか', 'うち', 'あた.る', 'チュウ')\n['｜', '口']\nTags: [[Again_Yui]] \n\nEND"
+lines = test.split('\n')
+for line in lines:
+    if 'Tags: ' in line:
+        lines[lines.index(line)] = line[:-2] + '] ' + f'[[{tag}]] '
 
-test = '飛び立つ'
-title = '[[飛]] び [[立]] つ'
-def check_title(title, test):
-    return test == title.replace(' ', '').replace('[', '').replace(']', '')
-print(check_title(title, test))
+print(*lines)
