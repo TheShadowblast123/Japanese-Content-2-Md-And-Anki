@@ -6,10 +6,11 @@ import glob
 import re
 import googletrans as gt
 import string
+import csv
 from concurrent.futures import ThreadPoolExecutor, wait, ALL_COMPLETED
 old_kanji = []
 old_words = []
-global content_md, kanji_md, sentences_md, words_md, content_path, kanji_path, sentences_path, words_path
+global content_md, kanji_md, sentences_md, words_md, content_path, kanji_path, sentences_path, words_path, csv_path
 global current_name
 current_name = ''
 content_md = "Notes\Japanese Notes\Content.md"
@@ -20,6 +21,7 @@ content_path = "Notes\Japanese Notes\Content"
 kanji_path = "Notes\Japanese Notes\Kanji"
 sentences_path = "Notes\Japanese Notes\Sentences"
 words_path = "Notes\Japanese Notes\Words"
+csv_path = r"Notes\Japanese Notes\CSV"
 kanji_range_1, kanji_range_2, kanji_range_3 = (0x3400, 0x4DB5),(0x4E00,0x9FCB), (0xF900, 0xFA6A)
 kanji_set_1, kanji_set_2, kanji_set_3 = [chr(c) for c in range(*kanji_range_1)], [chr(c) for c in range(*kanji_range_2)], [chr(c) for c in range(*kanji_range_3)]
 kanji_set = kanji_set_1 + kanji_set_2 + kanji_set_3
@@ -359,7 +361,9 @@ def write_kanji_cards(kanjis : list[str]):
     for kanji in kanjis:
         kanji_card(kanji_data(kanji))
     return
-def main():
+
+
+def make_notes ():
     word_punctuation = string.punctuation + r'！＂”“＃＄％＆＇（）＊＋，－．／：；＜＝＞？＠［＼］＾＿｀｛｜｝～、。〃〄々〆〇〈〉《》「」『』【】〒〓〔〕〖〗〘〙〚〛〜〝〞〟〠〡〢〣〤〥〦〧〨〩〪〭〮〯〫〬〰〱〲〳〴〵〶〷〸〹〺〻〼〽〾｟｠｡｢｣､･〿'
     punctuation = ['\n', '.', '?', '!', ' 〪', '。', ' 〭', '！', '．', '？']
     global current_name
@@ -413,7 +417,134 @@ def main():
             executor.submit(write_word_cards, words)
             executor.shutdown(wait=True)
         print("Api calls are done, next loop")
+class Flashcard:
+    def __init__ (self, front : str, back : str):
+        self.Front = front.replace('[', '').replace(']', '')
+        self.Back = back
+        self.Cloze = ''
+        if '[[' in front and len(front.replace('[[', '').replace(']', '')) > 1:
+            temp = front.replace('[[', '{').replace(']]', '}}')
+            result = ''
+            count = 1
+            for t in temp:
+                if t != '{':
+                    result += t
+                    continue
+                result += '{{' + f'c{count}::'
+                count += 1
+            self.Cloze = result
+def files_to_flashcard_class(file_paths : list) -> list:
+    output = []
+    lines = []
+    for path in file_paths:
+        look = 'Basic'
+        with open(path, 'r', encoding="utf-8") as file:
+            lines = file.readlines()
+        #get me the front of the card
 
-        
+        front_index = 3
+
+        if front_index < 0: continue
+        #get me the back of the card
+        back_index, tag_index = 0, 0
+        for i in range(front_index, len(lines)):
+            if 'Back:' not in lines[i]: continue
+            back_index = i
+            break
+        if back_index == 0: continue
+
+        for i in range(len(lines)-1, back_index, -1):
+            if 'Tags: [[' not in lines[i]: continue
+            tag_index = i
+            break
+        #profit
+        front_range = range(front_index, back_index)
+        back_range = range(back_index, tag_index)
+        front, back = '', ''
+        for i in front_range:
+            front += lines[i]
+        for i in back_range:
+            back += lines[i]
+        output.append(Flashcard(front, back).__dict__)
+            
+    return output
+def flashcards_to_csv (flashcards : list[dict], csv_file_path : str, cloze_path : str):
+    regular_fieldnames = ['Front', 'Back']
+    cloze_fieldnames = ['Cloze', 'Back']
+    with open(csv_file_path, 'w', encoding="utf-8", newline='') as regular_csv_file, \
+        open(cloze_path, 'w', encoding="utf-8", newline='') as cloze_csv_file:
+        regular_csv_writer = csv.DictWriter(regular_csv_file, regular_fieldnames)
+        cloze_csv_writer = csv.DictWriter(cloze_csv_file, cloze_fieldnames)
+        for card in flashcards:
+            back = card['Back']
+            cloze_csv_writer.writerow({'Cloze': card['Cloze'], 'Back': back})
+            regular_csv_writer.writerow({'Front': card['Front'], 'Back': back})
+def make_csvs ():
+    input_csv_sentences = glob.glob(f"{sentences_path}\*.md")
+    input_csv_words = glob.glob(f"{words_path}\*.md")
+    input_csv_kanji = glob.glob(f"{kanji_path}\*.md")
+    flashcards_to_csv(files_to_flashcard_class(input_csv_sentences), f'{csv_path}\Sentences.csv', f'{csv_path}\Sentences_cloze.csv')
+    flashcards_to_csv(files_to_flashcard_class(input_csv_words), f'{csv_path}\Words.csv', f'{csv_path}\Words_cloze.csv')
+    flashcards_to_csv(files_to_flashcard_class(input_csv_kanji), f'{csv_path}\Kanji.csv', f'{csv_path}\Kanji_cloze.csv')
+def ask_for_csvs ():
+    print(r"do you want the .csv files (for Anki)?")
+    answer = input(r'Y (for yes) or N (for no)').lower()
+    match answer:
+        case 'y':
+            just_csvs()
+        case 'n':
+            ready(0)
+        case _:
+            print("that's not an answer I understand.")
+            ask_for_csvs()
+def just_csvs():
+    print(r"do you only want to make the .csv files (No new/overwriting markdown notes)?")
+    answer = input(r'Y (for yes) or N (for no)').lower()
+    match answer:
+        case 'y':
+            ready(2)
+        case 'n':
+            ready(1)
+        case _:
+            print("that's not an answer I understand.")
+            just_csvs()
+def ready(n : int):
+    match n:
+        case 0:
+            print("So you want only the NOTES. Great :^)")
+        case 1:
+            print("so you want both the NOTES and the CSV files for Anki? Wonderful :-^)")
+        case 2:
+            print("so you want only the CSV files for Anki? Beautiful :^D")
+        case _:
+            print("We did something we shouldn't have, maybe it's a bitflip, maybe it's maybeline, sorry :C")
+            ask_for_csvs()  
+    answer = input(r'Y (for yes) or N (for no)').lower()
+    match answer:
+        case 'y':
+            match n:
+                case 0:
+                    print("Creating just notes")
+                    make_notes()
+                case 1:
+                    print("Creating notes and csv files")
+                    make_notes()
+                    make_csvs()
+                case 2:
+                    print("creating csv files")
+                    make_csvs()
+                case _:
+                    print("We did something we shouldn't have, maybe it's a bitflip, maybe it's fitblip, sorry :C")
+                    ask_for_csvs()  
+        case 'n':
+            print(r" Mistakes happen, we'll start from the begining again. <(^~^)>")
+            ask_for_csvs()
+        case _:
+            print("that's not an answer I understand.")
+            ready(n)
+
+
+def main():
+    ask_for_csvs()
 if __name__ == '__main__':
     main()
