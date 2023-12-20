@@ -389,8 +389,7 @@ def make_notes ():
                 kanji_list.append(k)
         print(f'kanji sists done for {current_name}')
         print(f'now calling apis')
-        #handle first parallel, write to {langpart}.md and add duplicates to a list for editing tags and remove them for the orignal list
-        
+       
         with ThreadPoolExecutor() as executor:
             executor.submit(append_content, name)
             future_b = executor.submit(write_to_sentences, sentences)
@@ -437,15 +436,11 @@ def files_to_flashcard_class(file_paths : list) -> list:
     output = []
     lines = []
     for path in file_paths:
-        look = 'Basic'
         with open(path, 'r', encoding="utf-8") as file:
             lines = file.readlines()
-        #get me the front of the card
-
-        front_index = 3
+        front_index = 3 # need a better way of setting front_index
 
         if front_index < 0: continue
-        #get me the back of the card
         back_index, tag_index = 0, 0
         for i in range(front_index, len(lines)):
             if 'Back:' not in lines[i]: continue
@@ -457,7 +452,6 @@ def files_to_flashcard_class(file_paths : list) -> list:
             if 'Tags: [[' not in lines[i]: continue
             tag_index = i
             break
-        #profit
         front_range = range(front_index, back_index)
         back_range = range(back_index, tag_index)
         front, back = '', ''
