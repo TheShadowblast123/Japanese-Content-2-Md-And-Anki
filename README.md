@@ -72,6 +72,7 @@ Use the .csv files in the Notes\Japanese Notes\CSV directory.
  
   
 So I wanted something that:
+
 	1. Allows the learner to be motivated by their biggest motivating factor
 	2. Facillitates and encourages engagement with the language
 	3. Lowers the time it takes to gather data that one needs on any given kanji, word or sentence
