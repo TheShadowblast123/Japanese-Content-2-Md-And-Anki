@@ -22,6 +22,8 @@ kanji_path = "Notes\Japanese Notes\Kanji"
 sentences_path = "Notes\Japanese Notes\Sentences"
 words_path = "Notes\Japanese Notes\Words"
 csv_path = r"Notes\Japanese Notes\CSV"
+global skip_sentences
+skip_sentences = False;
 kanji_range_1, kanji_range_2, kanji_range_3 = (0x3400, 0x4DB5),(0x4E00,0x9FCB), (0xF900, 0xFA6A)
 kanji_set_1, kanji_set_2, kanji_set_3 = [chr(c) for c in range(*kanji_range_1)], [chr(c) for c in range(*kanji_range_2)], [chr(c) for c in range(*kanji_range_3)]
 kanji_set = kanji_set_1 + kanji_set_2 + kanji_set_3
@@ -265,6 +267,18 @@ def sentence_card(data):
     temp.append('END')
     output ='\n'.join(temp)
     write_card(output, f'{sentences_path}\{sentence}.md')
+def sentence_card_skipped(sentence):
+    temp = [] 
+    temp.append('TARGET DECK: Sentences')
+    temp.append('START')
+    temp.append('Basic')
+    temp.append(f'{sentence_to_word_string(sentence)}')
+    temp.append('Back: ')
+    temp.append(f'Tags: [[{current_name}]] ')
+    temp.append('')
+    temp.append('END')
+    output ='\n'.join(temp)
+    write_card(output, f'{sentences_path}\{sentence}.md')
 def word_card(data : dict): 
     temp = []
     word = data['word']
@@ -350,7 +364,10 @@ def write_sentence_cards(sentences : list[str]):
             file.write(f'[[{line}]]' + '\n')
         file.close()
     for s in sentences:
-        sentence_card(sentence_data(s))
+        if skip_sentences == False:
+            sentence_card(sentence_data(s))
+        else:
+            sentence_card_skipped(s)
     return
 
 def write_word_cards(words : list[str]):
@@ -444,6 +461,7 @@ def files_to_flashcard_class(file_paths : list) -> list:
         back_index, tag_index = 0, 0
         for i in range(front_index, len(lines)):
             if 'Back:' not in lines[i]: continue
+            lines[i].replace("Back: ", "")
             back_index = i
             break
         if back_index == 0: continue
@@ -458,6 +476,7 @@ def files_to_flashcard_class(file_paths : list) -> list:
         for i in front_range:
             front += lines[i]
         for i in back_range:
+            
             back += lines[i]
         output.append(Flashcard(front, back).__dict__)
             
@@ -480,6 +499,23 @@ def make_csvs ():
     flashcards_to_csv(files_to_flashcard_class(input_csv_sentences), f'{csv_path}\Sentences.csv', f'{csv_path}\Sentences_cloze.csv')
     flashcards_to_csv(files_to_flashcard_class(input_csv_words), f'{csv_path}\Words.csv', f'{csv_path}\Words_cloze.csv')
     flashcards_to_csv(files_to_flashcard_class(input_csv_kanji), f'{csv_path}\Kanji.csv', f'{csv_path}\Kanji_cloze.csv')
+def ask_for_translations(n : int):
+    global skip_sentences
+    print(r"This program uses Google Translate for sentence translations. If you have more accurate translations, you might want to skip this step.")
+    print(r"Include sentence translations?")
+    print(r"WARNING YOU WILL HAVE TO QUIT IF YOU ENTER THIS INCORRECTLY.")
+    answer = input(r'Y (for yes) or N (for no)').lower()
+    match answer:
+        case 'y':
+            print(r"Alright, translations will be there.")
+            ready(n)
+        case 'n':
+            print(r"Alright, no translations")
+            skip_sentences = True
+            ready(n)
+        case _:
+            print("that's not an answer I understand.")
+            ask_for_translations()
 def ask_for_csvs ():
     print(r"do you want the .csv files (for Anki)?")
     answer = input(r'Y (for yes) or N (for no)').lower()
@@ -487,7 +523,7 @@ def ask_for_csvs ():
         case 'y':
             just_csvs()
         case 'n':
-            ready(0)
+            ask_for_translations(0)
         case _:
             print("that's not an answer I understand.")
             ask_for_csvs()
@@ -498,7 +534,7 @@ def just_csvs():
         case 'y':
             ready(2)
         case 'n':
-            ready(1)
+            ask_for_translations(1)
         case _:
             print("that's not an answer I understand.")
             just_csvs()
