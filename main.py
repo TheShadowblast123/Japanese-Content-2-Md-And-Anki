@@ -23,8 +23,8 @@ sentences_path = "Notes\Japanese Notes\Sentences"
 words_path = "Notes\Japanese Notes\Words"
 csv_path = r"Notes\Japanese Notes\CSV"
 global skip_sentences
-skip_sentences = False;
-kanji_range_1, kanji_range_2, kanji_range_3 = (0x3400, 0x4DB5),(0x4E00,0x9FCB), (0xF900, 0xFA6A)
+skip_sentences = False
+kanji_range_1, kanji_range_2, kanji_range_3 = (0x3400, 0x4DBf),(0x4E00,0x9FCB), (0xF900, 0xFA6A)
 kanji_set_1, kanji_set_2, kanji_set_3 = [chr(c) for c in range(*kanji_range_1)], [chr(c) for c in range(*kanji_range_2)], [chr(c) for c in range(*kanji_range_3)]
 kanji_set = kanji_set_1 + kanji_set_2 + kanji_set_3
 def parser(item) -> list[str]:
@@ -91,19 +91,28 @@ def sentence_to_word_string(sentence):
     temp = str(parser(sentence))
     words_string = re.sub(pattern, '', temp)
     words_string = words_string.split()
-    temp_array = [f'[[{word}]]' for word in words_string]
+    temp_array = []
+    for word in words_string:
+        current_length = len(temp_array)
+        for c in word:
+            if c in kanji_set or c in old_kanji:
+                temp_array.append(f'[[Words/{word}|{word}]]')
+                break
+        if current_length == len(temp_array):
+            temp_array.append(f'[[{word}]]')
+    
     words_string = ' '.join(temp_array)
 
     return words_string
 def word_to_kanji_string(word):
-    temp = [ f'[[{x}]]' if x in kanji_set else x for x in word]
+    temp = [ f'[[Kanji/{x}|{x}]]' if x in kanji_set or x in old_kanji else x for x in word]
     kanji = ''.join(temp)
     return kanji
 def replace_spaces (tag):
     return tag.replace(' ', '_')
 def append_content(name):
     with open(content_md, 'a+') as file:
-        x = f'{name}\n'
+        x = f'[[{name}]]\n'
         file.write(x)
         file.close()
         #we assume the content is new no matter what
@@ -410,12 +419,13 @@ def make_notes ():
         with ThreadPoolExecutor() as executor:
             executor.submit(append_content, name)
             future_b = executor.submit(write_to_sentences, sentences)
-            future_c = executor.submit(write_to_words, words)
             future_d = executor.submit(write_to_kanji, kanji_list)
+            future_c = executor.submit(write_to_words, words)
+            
            
             edit_sentences = future_b.result()
-            edit_words = future_c.result()
             edit_kanji = future_d.result()
+            edit_words = future_c.result()
             kl = [f'[[{x}]]\n' for x in kanji_list]
             wl = [f'[[{x}]]\n' for x in words]
             sl = [f'[[{x}]]\n' for x in sentences]
