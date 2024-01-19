@@ -54,8 +54,11 @@ def intake_content ():
                 if len(temp) > 0:
                     blob += temp
             continue
+
         output[name] = blob
         this_content_md = content_path + f'/{name}.md'
+
+        
         with open(this_content_md, 'w', encoding='utf8') as file:
             file.writelines(lines)
             file.close()
@@ -64,6 +67,7 @@ def intake_content ():
 def get_sentences ():
     punctuation = ['\n', '.', '?', '!', ' 〪', '。', ' 〭', '！', '．', '？']
     sources = intake_content()
+    
     output = {}
     for n in list(sources.keys()):
         output[n] = []
@@ -176,57 +180,53 @@ def debugger(a):
     print(a)
     return
 
-def edit_kanji_tags(edit_list):
+def edit_kanji_tags(item):
+    lines = []
+    with open (f'{kanji_path}\{item}.md', 'r', encoding='utf8') as file:
+        lines = file.readlines()
 
-    for item in edit_list:
-        lines = []
-        with open (f'{kanji_path}\{item}.md', 'r', encoding='utf8') as file:
-            lines = file.readlines()
+        for line in lines:
+            if 'Tags: ' in line:
 
-            for line in lines:
-                if 'Tags: ' in line:
-
-                    lines[lines.index(line)] = line[:-2] + ' ' f'[[{current_name}]] \n'
-                    break
-                continue
-            file.close()
-        with open (f'{kanji_path}\{item}.md', 'w', encoding='utf8') as file:
-            file.writelines(lines)
-            file.close
+                lines[lines.index(line)] = line[:-2] + ' ' f'[[{current_name}]] \n'
+                break
+            continue
+        file.close()
+    with open (f'{kanji_path}\{item}.md', 'w', encoding='utf8') as file:
+        file.writelines(lines)
+        file.close
     return
-def edit_sentence_tags(edit_list):
-    for item in edit_list:
-        lines = []
-        with open (f'{sentences_path}\{item}.md', 'r', encoding='utf8') as file:
-            lines = file.readlines()
+def edit_sentence_tags(item):
+    lines = []
+    with open (f'{sentences_path}\{item}.md', 'r', encoding='utf8') as file:
+        lines = file.readlines()
 
-            for line in lines:
-                if 'Tags: ' in line:
+        for line in lines:
+            if 'Tags: ' in line:
 
-                    lines[lines.index(line)] = line[:-2] + ' ' f'[[{current_name}]] \n'
-                    break
-                continue
-            file.close()
-        with open (f'{sentences_path}\{item}.md', 'w', encoding='utf8') as file:
-            file.writelines(lines)
-            file.close
+                lines[lines.index(line)] = line[:-2] + ' ' f'[[{current_name}]] \n'
+                break
+            continue
+        file.close()
+    with open (f'{sentences_path}\{item}.md', 'w', encoding='utf8') as file:
+        file.writelines(lines)
+        file.close
     return
-def edit_words_tags(edit_list):
-    for item in edit_list:
-        lines = []
-        with open (f'{words_path}\{item}.md', 'r', encoding='utf8') as file:
-            lines = file.readlines()
+def edit_words_tags(item):
+    lines = []
+    with open (f'{words_path}\{item}.md', 'r', encoding='utf8') as file:
+        lines = file.readlines()
 
-            for line in lines:
-                if 'Tags: ' in line:
+        for line in lines:
+            if 'Tags: ' in line:
 
-                    lines[lines.index(line)] = line[:-2] + ' ' f'[[{current_name}]] \n'
-                    break
-                continue
-            file.close()
-        with open (f'{words_path}\{item}.md', 'w', encoding='utf8') as file:
-            file.writelines(lines)
-            file.close
+                lines[lines.index(line)] = line[:-2] + ' ' f'[[{current_name}]] \n'
+                break
+            continue
+        file.close()
+    with open (f'{words_path}\{item}.md', 'w', encoding='utf8') as file:
+        file.writelines(lines)
+        file.close
     return
 def write_to_kanji(l):
     edit_kanji_list = []
@@ -365,30 +365,30 @@ def write_card(lines : str, path : str):
     with open(path, 'w',encoding="utf-8") as file:
         file.write(lines)
     return
-def write_sentence_cards(sentences : list[str]):
+def write_sentences_to_content_md(sentences: list[str]):
     this_content_md = content_path + f'/{current_name}.md'
     with open(this_content_md, 'a', encoding='utf8') as file:
         file.write('\n')
         for line in sentences:
             file.write(f'[[{line}]]' + '\n')
         file.close()
-    for s in sentences:
-        if skip_sentences == False:
-            sentence_card(sentence_data(s))
-        else:
-            sentence_card_skipped(s)
+    return
+def write_sentence_cards(s : str):
+    if skip_sentences == False:
+        sentence_card(sentence_data(s))
+    else:
+        sentence_card_skipped(s)
     return
 
-def write_word_cards(words : list[str]):
-    for w in words:
-        word_card(word_data(w))
+def write_word_cards(words : str):
+    word_card(word_data(words))
     return
-def write_kanji_cards(kanjis : list[str]):
-    for kanji in kanjis:
-        kanji_card(kanji_data(kanji))
+def write_kanji_cards(kanjis : str):
+    kanji_card(kanji_data(kanjis))
     return
 
-
+def format_link_names (item : str) -> str :
+    return f'[[{item}]]\n'
 def make_notes ():
     word_punctuation = string.punctuation + r'！＂”“＃＄％＆＇（）＊＋，－．／：；＜＝＞？＠［＼］＾＿｀｛｜｝～、。〃〄々〆〇〈〉《》「」『』【】〒〓〔〕〖〗〘〙〚〛〜〝〞〟〠〡〢〣〤〥〦〧〨〩〪〭〮〯〫〬〰〱〲〳〴〵〶〷〸〹〺〻〼〽〾｟｠｡｢｣､･〿'
     punctuation = ['\n', '.', '?', '!', ' 〪', '。', ' 〭', '！', '．', '？']
@@ -415,32 +415,31 @@ def make_notes ():
                 kanji_list.append(k)
         print(f'kanji sists done for {current_name}')
         print(f'now calling apis')
-       
+        
         with ThreadPoolExecutor() as executor:
             executor.submit(append_content, name)
             future_b = executor.submit(write_to_sentences, sentences)
             future_d = executor.submit(write_to_kanji, kanji_list)
             future_c = executor.submit(write_to_words, words)
             
-           
+            
             edit_sentences = future_b.result()
             edit_kanji = future_d.result()
             edit_words = future_c.result()
-            kl = [f'[[{x}]]\n' for x in kanji_list]
-            wl = [f'[[{x}]]\n' for x in words]
-            sl = [f'[[{x}]]\n' for x in sentences]
+            kl = list(executor.map(format_link_names, kanji_list))
+            wl = list(executor.map(format_link_names, words))
+            sl = list(executor.map(format_link_names, sentences))
             add_new_stuff(kl, wl, sl)
             if len(edit_kanji) > 0:
                 executor.map(edit_kanji_tags, edit_kanji)             
-            
             if len(edit_sentences) > 0:
-                executor.submit(edit_sentence_tags, edit_sentences) 
+                executor.map(edit_sentence_tags, edit_sentences) 
             if len(edit_words) > 0:
-                executor.submit(edit_words_tags, edit_words) 
-            
+                executor.map(edit_words_tags, edit_words) 
             executor.map(write_kanji_cards, kanji_list)
-            executor.submit(write_sentence_cards, sentences)
-            executor.submit(write_word_cards, words)
+            executor.submit(write_sentences_to_content_md, sentences)
+            executor.map(write_sentence_cards, sentences)
+            executor.map(write_word_cards, words)
             executor.shutdown(wait=True)
         print("Api calls are done, next loop")
 class Flashcard:
