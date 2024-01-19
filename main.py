@@ -22,25 +22,29 @@ kanji_path = "Notes\Japanese Notes\Kanji"
 sentences_path = "Notes\Japanese Notes\Sentences"
 words_path = "Notes\Japanese Notes\Words"
 csv_path = r"Notes\Japanese Notes\CSV"
+
 global skip_sentences
 skip_sentences = False
 kanji_range_1, kanji_range_2, kanji_range_3 = (0x3400, 0x4DBf),(0x4E00,0x9FCB), (0xF900, 0xFA6A)
 kanji_set_1, kanji_set_2, kanji_set_3 = [chr(c) for c in range(*kanji_range_1)], [chr(c) for c in range(*kanji_range_2)], [chr(c) for c in range(*kanji_range_3)]
 kanji_set = kanji_set_1 + kanji_set_2 + kanji_set_3
+
 def parser(item) -> list[str]:
     mecab = MeCab.Tagger("-O wakati")
     return mecab.parse(item).split()
-def check_title(title, test):
+
+def check_title(title : str, test : str) -> bool:
     return title == f'[[{test}]]\n'
-def intake_content ():
+
+def intake_content() -> dict:
     output = {}
     new_content_path = "./New Content"
-
 
     txt_files = glob.glob(os.path.join(new_content_path, "*.txt"))
     if txt_files == []:
         print(f'You have no new sources place .txt files in {new_content_path} in order to begin')
         return
+    
     for txt_file in txt_files:
         name = replace_spaces(os.path.basename(txt_file)).strip('.txt')
         print(name)
@@ -62,13 +66,13 @@ def intake_content ():
         with open(this_content_md, 'w', encoding='utf8') as file:
             file.writelines(lines)
             file.close()
-        
     return output
-def get_sentences ():
+
+def get_sentences() -> dict:
     punctuation = ['\n', '.', '?', '!', ' 〪', '。', ' 〭', '！', '．', '？']
     sources = intake_content()
-    
     output = {}
+
     for n in list(sources.keys()):
         output[n] = []
     for name, content in sources.items():
@@ -89,7 +93,7 @@ def get_sentences ():
             output[name].append(sentence)
     return output
 
-def sentence_to_word_string(sentence):
+def sentence_to_word_string(sentence : str) -> str:
     word_punctuation = string.punctuation + r'！＂”“＃＄％＆＇（）＊＋，－．／：；＜＝＞？＠［＼］＾＿｀｛｜｝～、。〃〄々〆〇〈〉《》「」『』【】〒〓〔〕〖〗〘〙〚〛〜〝〞〟〠〡〢〣〤〥〦〧〨〩〪〭〮〯〫〬〰〱〲〳〴〵〶〷〸〹〺〻〼〽〾｟｠｡｢｣､･〿'
     pattern = f'[{re.escape(word_punctuation)}]'
     temp = str(parser(sentence))
@@ -108,20 +112,24 @@ def sentence_to_word_string(sentence):
     words_string = ' '.join(temp_array)
 
     return words_string
-def word_to_kanji_string(word):
+
+def word_to_kanji_string(word : str) -> str:
     temp = [ f'[[Kanji/{x}|{x}]]' if x in kanji_set or x in old_kanji else x for x in word]
     kanji = ''.join(temp)
     return kanji
-def replace_spaces (tag):
+
+def replace_spaces(tag : str) -> str:
     return tag.replace(' ', '_')
-def append_content(name):
+
+def append_content(name : str):
     with open(content_md, 'a+') as file:
         x = f'[[{name}]]\n'
         file.write(x)
         file.close()
         #we assume the content is new no matter what
     return
-def append_sentence(sentence):
+
+def append_sentence(sentence : str) -> bool:
     with open(sentences_md, 'r+', encoding="utf-8") as file:
         temp = file.readlines()
         for t in temp:
@@ -130,7 +138,8 @@ def append_sentence(sentence):
                 return True
         file.close() 
     return False
-def append_kanji(kanji):
+
+def append_kanji(kanji : str) -> bool:
     with open(kanji_md, 'r+', encoding="utf-8") as file:
         temp = file.readlines()
         for t in temp:
@@ -139,7 +148,8 @@ def append_kanji(kanji):
                 return True    
         file.close()
     return False
-def add_new_stuff(kl, wl, sl):
+
+def add_new_stuff(kl : list[str], wl : list[str], sl : list[str]):
     temp = []
     with open(kanji_md, 'r', encoding="utf-8") as file:
         temp = file.readlines()
@@ -165,7 +175,8 @@ def add_new_stuff(kl, wl, sl):
         file.writelines(temp)
         file.close()
     return
-def append_word(word):
+
+def append_word(word : str) -> bool:
     with open(words_md, 'r+', encoding="utf-8") as file:
         temp = file.readlines()
         for t in temp:
@@ -180,7 +191,7 @@ def debugger(a):
     print(a)
     return
 
-def edit_kanji_tags(item):
+def edit_kanji_tags(item : str):
     lines = []
     with open (f'{kanji_path}\{item}.md', 'r', encoding='utf8') as file:
         lines = file.readlines()
@@ -196,7 +207,8 @@ def edit_kanji_tags(item):
         file.writelines(lines)
         file.close
     return
-def edit_sentence_tags(item):
+
+def edit_sentence_tags(item : str):
     lines = []
     with open (f'{sentences_path}\{item}.md', 'r', encoding='utf8') as file:
         lines = file.readlines()
@@ -212,7 +224,8 @@ def edit_sentence_tags(item):
         file.writelines(lines)
         file.close
     return
-def edit_words_tags(item):
+
+def edit_words_tags(item : str):
     lines = []
     with open (f'{words_path}\{item}.md', 'r', encoding='utf8') as file:
         lines = file.readlines()
@@ -228,7 +241,8 @@ def edit_words_tags(item):
         file.writelines(lines)
         file.close
     return
-def write_to_kanji(l):
+
+def write_to_kanji(l : list[str]) -> list[str]:
     edit_kanji_list = []
     count = 0
     copy = list(l)
@@ -240,9 +254,7 @@ def write_to_kanji(l):
         count += 1
     return edit_kanji_list
 
-            
-
-def write_to_words(l):
+def write_to_words(l : list[str]) -> list[str]:
     count = 0
     edit_words_list = []
     copy = list(l)
@@ -252,7 +264,8 @@ def write_to_words(l):
             continue
         count += 1
     return edit_words_list
-def write_to_sentences(l : list):
+
+def write_to_sentences(l : list[str]) -> list[str]:
     edit_sentences_list = []
     count = 0
     copy = list(l)
@@ -263,9 +276,10 @@ def write_to_sentences(l : list):
         count += 1
     return edit_sentences_list
 
-def sentence_card(data):
+def sentence_card(data : dict):
     temp = [] 
     sentence = data["sentence"]
+
     temp.append('TARGET DECK: Sentences')
     temp.append('START')
     temp.append('Basic')
@@ -274,10 +288,14 @@ def sentence_card(data):
     temp.append(f'Tags: [[{current_name}]] ')
     temp.append('')
     temp.append('END')
+
     output ='\n'.join(temp)
     write_card(output, f'{sentences_path}\{sentence}.md')
-def sentence_card_skipped(sentence):
+    return
+
+def sentence_card_skipped(sentence : str):
     temp = [] 
+
     temp.append('TARGET DECK: Sentences')
     temp.append('START')
     temp.append('Basic')
@@ -286,25 +304,32 @@ def sentence_card_skipped(sentence):
     temp.append(f'Tags: [[{current_name}]] ')
     temp.append('')
     temp.append('END')
+
     output ='\n'.join(temp)
     write_card(output, f'{sentences_path}\{sentence}.md')
+    return
+
 def word_card(data : dict): 
     temp = []
     word = data['word']
+    
     temp.append('TARGET DECK: Words')
     temp.append('START')
     temp.append('Basic')
-    temp.append(f'{word_to_kanji_string(data["word"])}')
+    temp.append(f'{word_to_kanji_string(word)}')
     temp.append('Back: ' + f'{data["definitions"]}')
     temp.append(f'{data["reading"]}')
     temp.append(f'Tags: [[{current_name}]] ')
     temp.append('')
     temp.append('END')
+
     output ='\n'.join(temp)
     write_card(output, f'{words_path}\{word}.md')
+    return
 def kanji_card(data : dict):
     temp = []
     kanji = data['kanji_']
+
     temp.append('TARGET DECK: Kanji')
     temp.append('START')
     temp.append('Basic')
@@ -315,24 +340,41 @@ def kanji_card(data : dict):
     temp.append(f'Tags: [[{current_name}]] ')
     temp.append('')
     temp.append('END')
+    
     output ='\n'.join(temp)
     write_card(output, f'{kanji_path}\{kanji}.md')
-def kanji_data(kanji):
+    return
+
+def kanji_data(kanji : str) -> dict | None:
     request = Kanji.request(kanji)
+    output = {}
     try:
         data = request.data
         main_readings = data.main_readings
-        output = {
-            'kanji_' : kanji,
-            'keyword' : data.main_meanings[0],
-            'readings' : (*main_readings.kun, *main_readings.on),
-            'strokes' : data.strokes,
-            'radicals' : data.radical.parts,
-        }
-        return output
+        output['kanji_'] = kanji
     except:
         return
-def word_data(word):
+    try:
+        output['keyword'] = data.main_meanings[0]
+    except:
+        output['keyword'] = ''
+    try:
+        output['readings'] = *main_readings.kun, *main_readings.on
+    except:
+        output['readings'] = ''
+    try:
+        output['strokes'] = data.strokes
+    except:
+        output['strokes'] = 0
+    try:
+        output['radicals'] = data.radical.parts
+    except:
+        output['radicals'] = ''
+
+        return output
+
+    
+def word_data(word : str) -> dict:
     request = Word.request(word)
     try:
         defintions = []
@@ -343,7 +385,7 @@ def word_data(word):
             defintions.append(defintion.english_definitions)
         output = {
             'word' : word,
-            'definitions' : str(defintions).replace('[[', '(').replace(']]', ')').replace('[', '(').replace(']', ')').replace("'", ''),
+            'definitions' : str(defintions).replace('[[', '(').replace(']]', ')').replace('[', '(').replace(']', ')').replace("'", ''), # reformatring [['']] as it might become link
             'reading' : data.japanese[0].reading
         }
         return output
@@ -354,7 +396,7 @@ def word_data(word):
             'definitions' : '()',
             'reading' : ''
         }
-def sentence_data(sentence):
+def sentence_data(sentence : str) -> dict:
     output = {
         'sentence' : sentence,
         'translation' : gt.translate(sentence, 'en', 'ja'),
@@ -380,8 +422,8 @@ def write_sentence_cards(s : str):
         sentence_card_skipped(s)
     return
 
-def write_word_cards(words : str):
-    word_card(word_data(words))
+def write_word_cards(word : str):
+    word_card(word_data(word))
     return
 def write_kanji_cards(kanjis : str):
     kanji_card(kanji_data(kanjis))
@@ -394,27 +436,28 @@ def make_notes ():
     punctuation = ['\n', '.', '?', '!', ' 〪', '。', ' 〭', '！', '．', '？']
     global current_name
     new_content = get_sentences()
-
+    count = 0
+    length = len(new_content.items()) - 1
     for name, sentences in new_content.items():
         current_name = name
         temp = ''
         for sentence in sentences:
             temp += sentence
-        print(f'sentence sists done for {current_name}')
+        print(f'sentence lists done for {current_name}')
         words = []
         words_temp = parser(temp)
         
         for w in words_temp:
             if w not in words and w not in word_punctuation and w not in punctuation:
                 words.append(w)
-        print(f'word sists done for {current_name}')
+        print(f'word lists done for {current_name}')
         kanji_list_temp = [k for k in kanji_set if k in temp]
         kanji_list = []
         for k in kanji_list_temp:
             if k not in kanji_list:
                 kanji_list.append(k)
-        print(f'kanji sists done for {current_name}')
-        print(f'now calling apis')
+        print(f'kanji lists done for {current_name}')
+        print(f'now calling APIs')
         
         with ThreadPoolExecutor() as executor:
             executor.submit(append_content, name)
@@ -426,9 +469,11 @@ def make_notes ():
             edit_sentences = future_b.result()
             edit_kanji = future_d.result()
             edit_words = future_c.result()
+
             kl = list(executor.map(format_link_names, kanji_list))
             wl = list(executor.map(format_link_names, words))
             sl = list(executor.map(format_link_names, sentences))
+
             add_new_stuff(kl, wl, sl)
             if len(edit_kanji) > 0:
                 executor.map(edit_kanji_tags, edit_kanji)             
@@ -436,12 +481,18 @@ def make_notes ():
                 executor.map(edit_sentence_tags, edit_sentences) 
             if len(edit_words) > 0:
                 executor.map(edit_words_tags, edit_words) 
+
             executor.map(write_kanji_cards, kanji_list)
             executor.submit(write_sentences_to_content_md, sentences)
             executor.map(write_sentence_cards, sentences)
             executor.map(write_word_cards, words)
+
             executor.shutdown(wait=True)
-        print("Api calls are done, next loop")
+        if count < length:
+            print("API calls are done, next loop")
+            continue
+        print("It is done, Enjoy your notes")
+    
 class Flashcard:
     def __init__ (self, front : str, back : str):
         self.Front = front.replace('[', '').replace(']', '')
@@ -458,7 +509,7 @@ class Flashcard:
                 result += '{{' + f'c{count}::'
                 count += 1
             self.Cloze = result
-def files_to_flashcard_class(file_paths : list) -> list:
+def files_to_flashcard_class(file_paths : list[int]) -> list[dict]:
     output = []
     lines = []
     for path in file_paths:
