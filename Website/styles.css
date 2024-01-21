@@ -1,0 +1,98 @@
+body {
+    background-color: black;
+    color:rgb(252, 234, 234);
+    font-family: monospace;
+}
+.body-container {
+    margin:20px;
+}
+header {
+    display: block;
+    margin: 20px auto;
+    padding: 20px;
+    text-align: center;
+    background-color: rgb(1,10,10); 
+}
+nav ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    font-size: 1.8vw; 
+}
+
+nav ul li {
+    display: inline;
+    margin-right: 20px;
+}
+
+a {
+    text-decoration: none;
+    color: #fff;
+    font-weight: bold;
+    font-size: 2.2vw;
+}
+a:hover {
+    text-decoration: underline;
+}
+footer {
+    border-radius: 5px;
+    display: block;
+    margin: 20px auto;
+    padding: 20px;
+    text-align: center;
+    background-color: rgb(10,10,50);
+    
+}
+main {
+    border-radius: 5px;
+    display:block;
+    margin:20px auto;
+}
+.sub-main-container {
+    border-radius: 5px;
+    margin:20px;
+    padding: 20px;
+    display: block;
+    background-color: rgb(10,40,40);
+}
+section {
+    border-radius: 5px;
+    background-color: rgb(10,20,20); 
+    margin:20px;
+    padding: 20px;
+}
+h1 {
+    font-size: 4vw; /* Adjust base font size for h1 */
+}
+h2 {
+    text-align: center;
+    margin:10px;
+    font-size: 3.5vw;
+}
+h3 {
+    font-size: 3vw;
+}
+p {
+    text-indent: 20px;
+    margin:20px;
+    font-size: 1.8vw; 
+}
+a {
+    
+}
+b {
+    color:white;
+}
+figure {
+    margin-top: 20px; 
+    text-indent: 0px;
+}
+figcaption {
+    margin-top: 20px; 
+    text-align: center;
+}
+blockquote {
+    font-size: 1.9vw;
+    font-style: italic;
+    font-family: Verdana, Geneva, Tahoma, sans-serif;    
+}

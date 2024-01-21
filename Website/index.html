@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="styles.css" rel="stylesheet">
+    <title>JpC2MD&Anki | Website</title>
+</head>
+<body>
+    <div class = "body-container">
+        <header>
+            <h1>Japanese Content 2 Markdown Notes & Anki</h1>
+            <p>A program made by a nerd for nerds to nerd out and learn Japanese with greater ease than otherwise possible, from Japanese content.</p>
+            <nav>
+                <ul>
+                    <li><a href="#Why">Why?</a></li>
+                    <li><a href="#What">What does it make?</a></li>
+                    <li><a href="#How">How does it work?</a></li>
+                    <li><a href="https://github.com/TheShadowblast123/Japanese-Content-2-Md-And-Anki">Link to Project</a></li>
+                </ul>
+            </nav>
+        </header>
+        
+        <main>
+            <section id ="Why">
+                    <h2>Why Bother making such an app?</h2>
+                    <div class = "sub-main-container">
+                        <h3> Dogma</h3>
+                        <p>Before I can explain why I believe this tool is valuable, I must explain my beliefs about the language learning process. I believe that due to the low inherit reward of the process of learning a language, we must find a highly motivating source. Whether it is love, cultural appreciation, a favorite book, or the allure of the end goal, whatever motivates us must be enough to endure a long and arduous process that delays gratification.</p> 
+                        <p>I also believe that we learn languages best from the language itself out in its natural habitat. Music, movies, books, comics, animations, social media, articles etc. all the different sources that contain the very language we wish to speak. For natives of the Latin alphabet, reading another language with the latin alphabet is rather easy, often a beginner can get most of the sounds correct and remembering words isn't that much of an issue. </p> 
+                        <p>With Kanji, hiragana, and katakana, the aspiring Japanese learner has a lot to hold in working memory for each sentence. Also, Kanji having many meanings and pronunciations means that evenatually this learner will have to expand upon their previous notes with new information. Beyond the belief of motivation and the belief that regular language is the best source to learn from, I'd rather not have much more dogma about language learning.</p>
+                    </div>
+                    <div class = "sub-main-container">
+                        <h3>The Objectives</h3>
+                        <p><b>I wanted something that would allow the learner to be motivated by their biggest motivating factor.</b> Learning through content, allows for this without issue. Whether your desire is the content itself or beyond the content, the content won't interfere with your motivation and often the content at some point becomes yet another source of motivation.</p>
+                        <p><b>I wanted something that facillitates and encourages engagement with the language.</b> In the end, whether you learn from grammar books or from content, you'll end up studying from content. I thusly want to build something that makes engagement with the language much less intimdating.</p>
+                        <p><b>I wanted something that lowers the time it takes to gather data that one may need on any given kanji, word, or sentence.</b> Lowering this time is the focus of many tools out there. The more time you spend collecting the data you need to study, the less time you have for actually studying.</p>
+                        <p><b>I wanted something allows for expansion with the knowledge of the language learner.</b> I didn't want something that would be quickly outgrown and useless within mere moments. </p>
+                    </div>
+                    <div class = "sub-main-container">
+                        <h3>Achieving Goals</h3>
+                        <p>This Python script automates the creation of Japanese language learning notes, focusing on sentences, words, and kanji. It utilizes various APIs and markdown files for organizing and managing the notes. <a href = "http://www.jisho.org">Jisho</a>'s API (Thank you to the <a href = "http://www.jisho.org">Jisho</a> team) is used to get data and words and kanji. The MeCab Parser isn't 100% accurate, but it's more than enough to get the job done and it means the learner doesn't have to be proficient in Japanese to start studying. Despite its inaccuracies, Google Translate is then used to translate the sentences as it did not require an API key, making it the best option for free and open source usage.</p>
+                    </div>
+                </div>
+            </section>
+            <section id ="What">
+                <h2>What does it make anyways?</h2>
+                <div class = "sub-main-container">
+                    <h3>Notes for Words, Kanji and Sentences</h3>
+                    <figure>
+                    <img src="Individual card.png" width = 100% alt="A Markdown file for a word">
+                    <figcaption>Generated Markdown notes for a word</figcaption>
+                    </figure>
+                    <p>Let's take a look at these generated notes. The formatting is such that if Obsidian to Anki ever works with programatically generated cards, it'll work with the markdown generated. But just because there's a generation process, doesn't necesairly mean that one cannot edit the notes. Keeping Everything above the Japanese, "END", "Tags: ", and "Back: ", the user can edit anything else they want including adding images.They get links to any sub notes (For Sentences, words and for words, kanji), a link back to sources, definition/translation/keyword, and pronounciation/readings.</p>
+                    <p>The name of the file is the sentence, word, or kanji itself. This means you can open the kanji folder, and search for a kanji given that you know how to type it, but of course there has to be a better way to quickly find the desired content that you want.</p>
+                </div>
+                <div class = "sub-main-container">
+                    <h3>Kanji.md, Sentences.md, Words.md, and Content.md</h3>
+                    <figure>
+                    <img src="Contents.png" width = 100% alt="Generated Markdown for Content">
+                    <figcaption>Generated Markdown For Content</figcaption>
+                    </figure>
+                    <p>The name of the file is the sentence, word, or kanji itself. This means you can open the kanji folder, and search for a kanji given that you know how to type it, but of course there has to be a better way to quickly find the desired content that you want. If you know where a desired kanji comes from, for example, find the content file, navigate to the sentence link containing the kanji, click the sentence, click the word, and click the kanji. If you know how to type it, there's dedicated markdown files which are lists of all the sentences, words, and kanji.</p>
+                </div>
+                <div class = "sub-main-container">
+                    <h3>Mind Map</h3>
+                    <figure>
+                    <img src="graph.png" width = 100% alt="A graph view">
+                    <figcaption>Obsidian's Resulting Graph view</figcaption>
+                    </figure>
+                    <p>This is one of the biggest reasons why I wanted to make this program. Obsidian's graph view gives the user a mind map of the words they are studying a peak into how the words their mind is actually processing the data. It's unnecesary but a great visual aid.</p>
+                    <p>See all the connections between the content and the words you're learning.</p>
+                </div>
+            </section> 
+            <section id ="How">
+                <h2>How does it work?</h2>
+                <div class = "sub-main-container">
+                    <h3>Project Structure</h3>
+                    <p>Before the addition of csv files for Anki, the project was structured on markdown files and a few folders. Key files were created to act as the databases, so really all the program does is it reads the new inputs and given that it either adds to files in the database or it creates new files. The result is that a user can enter in all the text files that they want to have converted into notes.</p>
+                    <p>When adding the functionality for Anki notes, the database provided by the notes themselves was a great starting point. The csv files rely on the notes files for their creation as it is important to include any changes that the user may have made after the notes were generated. I didn't want to create a mehtod for making the csv files, but there was a need and I also didn't feel that it'd be fair to non-Obsidian user.</p>
+                </div>
+                <div class="sub-main-container">
+                    <h3>Knowledge</h3>
+                    <p>As a Japanese learner, I myself don't know much Japanes, but I do know that there are many smart people who have already done a lot to provide learners with information and have done so for free. <a href = "http://www.jisho.org">Jisho</a> says this about themselves on their website: <blockquote><a href = "http://www.jisho.org">Jisho</a> is a powerful Japanese-English dictionary. It lets you find words, kanji, example sentences and more quickly and easily. Our goal is to build a new kind of dictionary that doesn't just let you look up single words or kanji, but rather helps you understand any Japanese text. Ultimately we want to see it be a Google Now or Wolfram Alpha for the Japanese language. Just paste what you want to understand into <a href = "http://www.jisho.org">Jisho</a>, be it English, romaji, a single word or an entire paragraph of Japanese text, and it will search a myriad of data to help you understand the words, kanji and even grammar patterns</blockquote></p>
+                    <p>I personally see <a href = "http://www.jisho.org">Jisho</a> as the single best thing that has happened for Japanese language learners that's method agnostic. It doesn't matter what learners believe. If you need a general knowledge base of Japanese, <a href = "http://www.jisho.org">Jisho</a> will always be at the top of recommendations for resources, so I thank the contributors to <a href = "http://www.jisho.org">Jisho</a> with all my heart.</p>
+                    <p>Google Translate was a forced option. I wanted something that was free and allow the project to be open source. For some reason, that last part is a bit hard as most translation services require an API key no matter the usage. I don't want a service that could have exposed someone's API key so Google Translate is used for sentence translation.</p>
+                    <p> With data from these sources, the learner is given a good starting point.</p>
+                </div>
+            </section> 
+        </main>
+        <footer>
+            <h2>You want to check it out?</h2>
+            <p>Whether you want to contribute to the project or if you want to download it yourself, the project is available on <a href ="https://github.com/TheShadowblast123/Japanese-Content-2-Md-And-Anki">https://github.com/TheShadowblast123/Japanese-Content-2-Md-And-Anki </a></p>
+        </footer>
+    </div>
+</body>
+</html>
