@@ -370,8 +370,8 @@ def kanji_data(kanji : str) -> dict | None:
         output['radicals'] = data.radical.parts
     except:
         output['radicals'] = ''
-
-        return output
+    
+    return output
 
     
 def word_data(word : str) -> dict:
