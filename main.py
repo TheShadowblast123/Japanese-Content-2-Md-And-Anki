@@ -346,37 +346,31 @@ def kanji_card(data : dict):
     return
 
 def kanji_data(kanji : str) -> dict | None:
-    request = Kanji.request(kanji)
+    
     output = {}
     try:
+        request = Kanji.request(kanji)
         data = request.data
         main_readings = data.main_readings
         output['kanji_'] = kanji
-    except:
-        return
-    try:
         output['keyword'] = data.main_meanings[0]
-    except:
-        output['keyword'] = ''
-    try:
-        output['readings'] = *main_readings.kun, *main_readings.on
-    except:
-        output['readings'] = ''
-    try:
+        output['readings'] = ', '.join(main_readings.kun) + ', '.join(main_readings.on)
         output['strokes'] = data.strokes
+        output['radicals'] = ', '.join(data.radical.parts)
     except:
+        output['kanji_'] = kanji
+        output['keyword'] = ''
+        output['readings'] = ''
         output['strokes'] = 0
-    try:
-        output['radicals'] = data.radical.parts
-    except:
         output['radicals'] = ''
     
     return output
 
     
 def word_data(word : str) -> dict:
-    request = Word.request(word)
+    
     try:
+        request = Word.request(word)
         defintions = []
         data = request.data[0]
         for defintion in data.senses:
@@ -392,9 +386,9 @@ def word_data(word : str) -> dict:
     except:
             print(f"Now would be a good time to write to report.txt or something eh? {word} is returning empty")
             return {
-            'word' : f'[[{word}]]',
+            'word' : f'{word}',
             'definitions' : '()',
-            'reading' : ''
+            'reading' : word
         }
 def sentence_data(sentence : str) -> dict:
     output = {
@@ -476,7 +470,7 @@ def make_notes ():
 
             add_new_stuff(kl, wl, sl)
             if len(edit_kanji) > 0:
-                executor.map(edit_kanji_tags, edit_kanji)             
+               executor.map(edit_kanji_tags, edit_kanji)             
             if len(edit_sentences) > 0:
                 executor.map(edit_sentence_tags, edit_sentences) 
             if len(edit_words) > 0:
