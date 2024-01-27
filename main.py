@@ -484,6 +484,7 @@ def make_notes ():
             executor.shutdown(wait=True)
         if count < length:
             print("API calls are done, next loop")
+            count +=1
             continue
         print("It is done, Enjoy your notes")
     
