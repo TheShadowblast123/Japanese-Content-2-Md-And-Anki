@@ -11,6 +11,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/TheShadowblast123/Japanese-Content-2-Md-And-Anki/path_handler"
 	"github.com/ikawaha/kagome/tokenizer"
 )
 
@@ -42,19 +43,21 @@ type FlashcardDict struct {
 
 // Global variables
 var (
-	oldKanji      []string
-	oldWords      []string
-	contentMd     = "./Test/Japanese Notes/Content.md"
-	kanjiMd       = "./Test/Japanese Notes/Kanji.md"
-	sentencesMd   = "./Test/Japanese Notes/Sentences.md"
-	wordsMd       = "./Test/Japanese Notes/Words.md"
-	contentPath   = "./Test/Japanese Notes/Content"
-	kanjiPath     = "./Test/Japanese Notes/Kanji"
-	sentencesPath = "./Test/Japanese Notes/Sentences"
-	wordsPath     = "./Test/Japanese Notes/Words"
-	csvPath       = "./Test/Japanese Notes/CSV"
-	currentName   = ""
-	skipSentences = false
+	pathing        = path_handler.TestPathing
+	oldKanji       []string
+	oldWords       []string
+	contentMd      = pathing.ContentMd
+	kanjiMd        = pathing.KanjiMd
+	sentencesMd    = pathing.SentencesMd
+	wordsMd        = pathing.WordsMd
+	contentPath    = pathing.ContentPath
+	kanjiPath      = pathing.KanjiPath
+	sentencesPath  = pathing.SentencesPath
+	wordsPath      = pathing.WordsPath
+	csvPath        = pathing.CsvPath
+	newContentPath = pathing.NewContent
+	currentName    = ""
+	skipSentences  = false
 )
 
 // Unicode ranges for kanji detection
@@ -118,7 +121,6 @@ func checkTitle(title, test string) bool {
 // IntakeContent loads and processes text files from the 'New Content' directory
 func intakeContent() map[string]string {
 	output := make(map[string]string)
-	newContentPath := "./New Content"
 
 	files, err := filepath.Glob(filepath.Join(newContentPath, "*.txt"))
 	if err != nil || len(files) == 0 {
@@ -208,19 +210,7 @@ func sentenceToWordString(sentence string) string {
 
 	var tempArray []string
 	for _, word := range strings.Fields(wordsString) {
-		containsKanji := false
-		for _, c := range word {
-			if containsRune(kanjiSet, string(c)) || containsRune(oldKanji, string(c)) {
-				containsKanji = true
-				break
-			}
-		}
-
-		if containsKanji {
-			tempArray = append(tempArray, fmt.Sprintf("[[Words/%s|%s]]", word, word))
-		} else {
-			tempArray = append(tempArray, fmt.Sprintf("[[%s]]", word))
-		}
+		tempArray = append(tempArray, fmt.Sprintf("[%s](%s\\%s.md)", word, wordsPath, word))
 	}
 
 	return strings.Join(tempArray, " ")
@@ -233,7 +223,7 @@ func wordToKanjiString(word string) string {
 	for _, c := range word {
 		charStr := string(c)
 		if containsRune(kanjiSet, charStr) || containsRune(oldKanji, charStr) {
-			result.WriteString(fmt.Sprintf("[[Kanji/%s|%s]]", charStr, charStr))
+			result.WriteString(fmt.Sprintf("[%s](%s\\%s.md)", charStr, kanjiPath, charStr))
 		} else {
 			result.WriteString(charStr)
 		}
