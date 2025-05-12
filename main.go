@@ -1,697 +1,979 @@
 package main
 
 import (
+	"bufio"
+	"encoding/csv"
 	"fmt"
+	"os"
+	"path/filepath"
+	"regexp"
+	"runtime/debug"
 	"strings"
+	"sync"
 
-	"github.com/bregydoc/gtranslate"
-	"github.com/ikawaha/kagome-dict/ipa"
-	"github.com/ikawaha/kagome/v2/tokenizer"
+	"github.com/ikawaha/kagome/tokenizer"
 )
 
-// from jisho_api.word import Word
-//from jisho_api.kanji import Kanji
-//import os
-//import glob
-//import re
-//import csv
-
-/* So we need data:
-1. Embedded data
-5. csv's or anki deck creation
-*/
-
-// old_kanji = []
-// old_words = []
-var old_words = []string{}
-var old_kanji = []string{} // should probably be something else
-/*
-We need variables to capture old data
-*/
-
-//global content_md, kanji_md, sentences_md, words_md, content_path, kanji_path, sentences_path, words_path, csv_path
-//global current_name
-
-//current_name = ''
-
-//content_md = "Notes\Japanese Notes\Content.md"
-//kanji_md = "Notes\Japanese Notes\Kanji.md"
-//sentences_md = "Notes\Japanese Notes\Sentences.md"
-//words_md = "Notes\Japanese Notes\Words.md"
-//content_path = "Notes\Japanese Notes\Content"
-//kanji_path = "Notes\Japanese Notes\Kanji"
-//sentences_path = "Notes\Japanese Notes\Sentences"
-//words_path = "Notes\Japanese Notes\Words"
-//csv_path = r"Notes\Japanese Notes\CSV"
-
-func main() {
-	example()
-
+// Type definitions for data structures
+type KanjiData struct {
+	Kanji    string
+	Keyword  string
+	Readings string
+	Strokes  int
+	Radicals string
 }
 
-func example() {
-	// litterally here to shut up the lsp
-	t, err := tokenizer.New(ipa.Dict(), tokenizer.OmitBosEos())
-	if err != nil {
-		panic(err)
-	}
-	// wakati
-	fmt.Println("---wakati---")
-	seg := t.Wakati("すもももももももものうち")
-	fmt.Println(seg)
+type WordData struct {
+	Word        string
+	Definitions string
+	Reading     string
+}
 
-	// tokenize
-	fmt.Println("---tokenize---")
-	tokens := t.Tokenize("すもももももももものうち")
+type SentenceData struct {
+	Sentence    string
+	Translation string
+}
+
+type FlashcardDict struct {
+	Front string
+	Back  string
+	Cloze string
+}
+
+// Global variables
+var (
+	oldKanji      []string
+	oldWords      []string
+	contentMd     = "./Test/Japanese Notes/Content.md"
+	kanjiMd       = "./Test/Japanese Notes/Kanji.md"
+	sentencesMd   = "./Test/Japanese Notes/Sentences.md"
+	wordsMd       = "./Test/Japanese Notes/Words.md"
+	contentPath   = "./Test/Japanese Notes/Content"
+	kanjiPath     = "./Test/Japanese Notes/Kanji"
+	sentencesPath = "./Test/Japanese Notes/Sentences"
+	wordsPath     = "./Test/Japanese Notes/Words"
+	csvPath       = "./Test/Japanese Notes/CSV"
+	currentName   = ""
+	skipSentences = false
+)
+
+// Unicode ranges for kanji detection
+var (
+	kanjiRange1 = [2]int{0x3400, 0x4DBF}
+	kanjiRange2 = [2]int{0x4E00, 0x9FCB}
+	kanjiRange3 = [2]int{0xF900, 0xFA6A}
+	kanjiSet    []string
+)
+
+func init() {
+	clearDir("Test")
+	// Initialize kanji character sets
+	for i := kanjiRange1[0]; i <= kanjiRange1[1]; i++ {
+		kanjiSet = append(kanjiSet, string(rune(i)))
+	}
+	for i := kanjiRange2[0]; i <= kanjiRange2[1]; i++ {
+		kanjiSet = append(kanjiSet, string(rune(i)))
+	}
+	for i := kanjiRange3[0]; i <= kanjiRange3[1]; i++ {
+		kanjiSet = append(kanjiSet, string(rune(i)))
+	}
+
+	// Create directories if they don't exist
+	dirs := []string{contentPath, kanjiPath, sentencesPath, wordsPath, csvPath, "./New Content"}
+	for _, dir := range dirs {
+		if _, err := os.Stat(dir); os.IsNotExist(err) {
+			os.MkdirAll(dir, 0755)
+		}
+	}
+
+	// Create markdown index files if they don't exist
+	files := []string{contentMd, kanjiMd, sentencesMd, wordsMd}
+	for _, file := range files {
+		if _, err := os.Stat(file); os.IsNotExist(err) {
+			f, _ := os.Create(file)
+			f.Close()
+		}
+	}
+}
+
+// Parser uses kagome for tokenization
+func parser(item string) []string {
+	t := tokenizer.New()
+	tokens := t.Tokenize(item)
+	var words []string
 	for _, token := range tokens {
-		features := strings.Join(token.Features(), ",")
-		fmt.Printf("%s\t%v\n", token.Surface, features)
+		if token.Class == tokenizer.DUMMY {
+			continue
+		}
+		words = append(words, token.Surface)
 	}
-	text := "Hello World"
-	translated, err := gtranslate.TranslateWithParams(
-		text,
-		gtranslate.TranslationParams{
-			From: "en",
-			To:   "ja",
-		},
-	)
-	if err != nil {
-		panic(err)
-	}
-
-	fmt.Printf("en: %s | ja: %s \n", text, translated)
-	// en: Hello World | ja: こんにちは世界
+	return words
 }
 
-/*
-global skip_sentences
-skip_sentences = False
-kanji_range_1, kanji_range_2, kanji_range_3 = (0x3400, 0x4DBf),(0x4E00,0x9FCB), (0xF900, 0xFA6A)
-kanji_set_1, kanji_set_2, kanji_set_3 = [chr(c) for c in range(*kanji_range_1)], [chr(c) for c in range(*kanji_range_2)], [chr(c) for c in range(*kanji_range_3)]
-kanji_set = kanji_set_1 + kanji_set_2 + kanji_set_3
-
-def parser(item) -> list[str]:
-    mecab = MeCab.Tagger("-O wakati")
-    return mecab.parse(item).split()
-
-def check_title(title : str, test : str) -> bool:
-    return title == f'[[{test}]]\n'
-
-def intake_content() -> dict:
-    output = {}
-    new_content_path = "./New Content"
-
-    txt_files = glob.glob(os.path.join(new_content_path, "*.txt"))
-    if txt_files == []:
-        print(f'You have no new sources place .txt files in {new_content_path} in order to begin')
-        return
-
-    for txt_file in txt_files:
-        name = replace_spaces(os.path.basename(txt_file)).strip('.txt')
-        print(name)
-        with open(txt_file, "r", encoding='UTF8') as file:
-            lines = file.readlines()
-            file.close()
-        blob = ''
-        for line in lines:
-            if line not in blob:
-                temp = re.sub(r'[A-Za-z0-9]', '', line).replace(' ', '')
-                if len(temp) > 0:
-                    blob += temp
-            continue
-
-        output[name] = blob
-        this_content_md = content_path + f'/{name}.md'
-
-
-        with open(this_content_md, 'w', encoding='utf8') as file:
-            file.writelines(lines)
-            file.close()
-    return output
-
-def get_sentences() -> dict:
-    punctuation = ['\n', '.', '?', '!', ' 〪', '。', ' 〭', '！', '．', '？']
-    sources = intake_content()
-    output = {}
-
-    for n in list(sources.keys()):
-        output[n] = []
-    for name, content in sources.items():
-
-        sentence = ''
-        for c in content:
-            if c not in punctuation:
-                sentence += c
-            else:
-                if sentence:
-                    if sentence not in output[name]:
-                        output[name].append(sentence)
-                    sentence = ''
-    for name, content in sources.items():
-        if name not in output:
-            output[name] = []
-        if sentence:
-            output[name].append(sentence)
-    return output
-
-def sentence_to_word_string(sentence : str) -> str:
-    word_punctuation = string.punctuation + r'！＂”“＃＄％＆＇（）＊＋，－．／：；＜＝＞？＠［＼］＾＿｀｛｜｝～、。〃〄々〆〇〈〉《》「」『』【】〒〓〔〕〖〗〘〙〚〛〜〝〞〟〠〡〢〣〤〥〦〧〨〩〪〭〮〯〫〬〰〱〲〳〴〵〶〷〸〹〺〻〼〽〾｟｠｡｢｣､･〿'
-    pattern = f'[{re.escape(word_punctuation)}]'
-    temp = str(parser(sentence))
-    words_string = re.sub(pattern, '', temp)
-    words_string = words_string.split()
-    temp_array = []
-    for word in words_string:
-        current_length = len(temp_array)
-        for c in word:
-            if c in kanji_set or c in old_kanji:
-                temp_array.append(f'[[Words/{word}|{word}]]')
-                break
-        if current_length == len(temp_array):
-            temp_array.append(f'[[{word}]]')
-
-    words_string = ' '.join(temp_array)
-
-    return words_string
-
-def word_to_kanji_string(word : str) -> str:
-    temp = [ f'[[Kanji/{x}|{x}]]' if x in kanji_set or x in old_kanji else x for x in word]
-    kanji = ''.join(temp)
-    return kanji
-
-def replace_spaces(tag : str) -> str:
-    return tag.replace(' ', '_')
-
-def append_content(name : str):
-    with open(content_md, 'a+') as file:
-        x = f'[[{name}]]\n'
-        file.write(x)
-        file.close()
-        #we assume the content is new no matter what
-    return
-
-def append_sentence(sentence : str) -> bool:
-    with open(sentences_md, 'r+', encoding="utf-8") as file:
-        temp = file.readlines()
-        for t in temp:
-            if check_title(t, sentence):
-                file.close()
-                return True
-        file.close()
-    return False
-
-def append_kanji(kanji : str) -> bool:
-    with open(kanji_md, 'r+', encoding="utf-8") as file:
-        temp = file.readlines()
-        for t in temp:
-            if check_title(t, kanji):
-                file.close()
-                return True
-        file.close()
-    return False
-
-def add_new_stuff(kl : list[str], wl : list[str], sl : list[str]):
-    temp = []
-    with open(kanji_md, 'r', encoding="utf-8") as file:
-        temp = file.readlines()
-        temp.extend(kl)
-        file.close()
-    with open(kanji_md, 'w', encoding="utf-8") as file:
-        file.writelines(temp)
-        file.close()
-    temp = []
-    with open(words_md, 'r', encoding="utf-8") as file:
-        temp = file.readlines()
-        temp.extend(wl)
-        file.close()
-    with open(words_md, 'w', encoding="utf-8") as file:
-        file.writelines(temp)
-        file.close()
-    temp = []
-    with open(sentences_md, 'r', encoding="utf-8") as file:
-        temp = file.readlines()
-        temp.extend(sl)
-        file.close()
-    with open(sentences_md, 'w', encoding="utf-8") as file:
-        file.writelines(temp)
-        file.close()
-    return
-
-def append_word(word : str) -> bool:
-    with open(words_md, 'r+', encoding="utf-8") as file:
-        temp = file.readlines()
-        for t in temp:
-            if check_title(t, word):
-                file.close()
-                return True
-        file.close()
-    return False
-
-def debugger(a):
-    breakpoint()
-    print(a)
-    return
-
-def edit_kanji_tags(item : str):
-    lines = []
-    with open (f'{kanji_path}\{item}.md', 'r', encoding='utf8') as file:
-        lines = file.readlines()
-
-        for line in lines:
-            if 'Tags: ' in line:
-
-                lines[lines.index(line)] = line[:-2] + ' ' f'[[{current_name}]] \n'
-                break
-            continue
-        file.close()
-    with open (f'{kanji_path}\{item}.md', 'w', encoding='utf8') as file:
-        file.writelines(lines)
-        file.close
-    return
-
-def edit_sentence_tags(item : str):
-    lines = []
-    with open (f'{sentences_path}\{item}.md', 'r', encoding='utf8') as file:
-        lines = file.readlines()
-
-        for line in lines:
-            if 'Tags: ' in line:
-
-                lines[lines.index(line)] = line[:-2] + ' ' f'[[{current_name}]] \n'
-                break
-            continue
-        file.close()
-    with open (f'{sentences_path}\{item}.md', 'w', encoding='utf8') as file:
-        file.writelines(lines)
-        file.close
-    return
-
-def edit_words_tags(item : str):
-    lines = []
-    with open (f'{words_path}\{item}.md', 'r', encoding='utf8') as file:
-        lines = file.readlines()
-
-        for line in lines:
-            if 'Tags: ' in line:
-
-                lines[lines.index(line)] = line[:-2] + ' ' f'[[{current_name}]] \n'
-                break
-            continue
-        file.close()
-    with open (f'{words_path}\{item}.md', 'w', encoding='utf8') as file:
-        file.writelines(lines)
-        file.close
-    return
-
-def write_to_kanji(l : list[str]) -> list[str]:
-    edit_kanji_list = []
-    count = 0
-    copy = list(l)
-    for k in copy:
-        if append_kanji(k):
-            edit_kanji_list.append(l.pop(count))
-
-            continue
-        count += 1
-    return edit_kanji_list
-
-def write_to_words(l : list[str]) -> list[str]:
-    count = 0
-    edit_words_list = []
-    copy = list(l)
-    for k in copy:
-        if append_word(k):
-            edit_words_list.append(l.pop(count))
-            continue
-        count += 1
-    return edit_words_list
-
-def write_to_sentences(l : list[str]) -> list[str]:
-    edit_sentences_list = []
-    count = 0
-    copy = list(l)
-    for k in copy:
-        if append_sentence(k):
-            edit_sentences_list.append(l.pop(count))
-            continue
-        count += 1
-    return edit_sentences_list
-
-def sentence_card(data : dict):
-    temp = []
-    sentence = data["sentence"]
-
-    temp.append('TARGET DECK: Sentences')
-    temp.append('START')
-    temp.append('Basic')
-    temp.append(f'{sentence_to_word_string(sentence)}')
-    temp.append('Back: ' + f'{data["translation"]}')
-    temp.append(f'Tags: [[{current_name}]] ')
-    temp.append('')
-    temp.append('END')
-
-    output ='\n'.join(temp)
-    write_card(output, f'{sentences_path}\{sentence}.md')
-    return
-
-def sentence_card_skipped(sentence : str):
-    temp = []
-
-    temp.append('TARGET DECK: Sentences')
-    temp.append('START')
-    temp.append('Basic')
-    temp.append(f'{sentence_to_word_string(sentence)}')
-    temp.append('Back: ')
-    temp.append(f'Tags: [[{current_name}]] ')
-    temp.append('')
-    temp.append('END')
-
-    output ='\n'.join(temp)
-    write_card(output, f'{sentences_path}\{sentence}.md')
-    return
-
-def word_card(data : dict):
-    temp = []
-    word = data['word']
-
-    temp.append('TARGET DECK: Words')
-    temp.append('START')
-    temp.append('Basic')
-    temp.append(f'{word_to_kanji_string(word)}')
-    temp.append('Back: ' + f'{data["definitions"]}')
-    temp.append(f'{data["reading"]}')
-    temp.append(f'Tags: [[{current_name}]] ')
-    temp.append('')
-    temp.append('END')
-
-    output ='\n'.join(temp)
-    write_card(output, f'{words_path}\{word}.md')
-    return
-def kanji_card(data : dict):
-    temp = []
-    kanji = data['kanji_']
-
-    temp.append('TARGET DECK: Kanji')
-    temp.append('START')
-    temp.append('Basic')
-    temp.append(f'{kanji}, {data["strokes"]}')
-    temp.append('Back: ' + f'{data["keyword"]}')
-    temp.append(f'{data["readings"]}')
-    temp.append(f'{data["radicals"]}')
-    temp.append(f'Tags: [[{current_name}]] ')
-    temp.append('')
-    temp.append('END')
-
-    output ='\n'.join(temp)
-    write_card(output, f'{kanji_path}\{kanji}.md')
-    return
-
-def kanji_data(kanji : str) -> dict | None:
-
-    output = {}
-    try:
-        request = Kanji.request(kanji)
-        data = request.data
-        main_readings = data.main_readings
-        output['kanji_'] = kanji
-        output['keyword'] = data.main_meanings[0]
-        output['readings'] = ', '.join(main_readings.kun) + ', '.join(main_readings.on)
-        output['strokes'] = data.strokes
-        output['radicals'] = ', '.join(data.radical.parts)
-    except:
-        output['kanji_'] = kanji
-        output['keyword'] = ''
-        output['readings'] = ''
-        output['strokes'] = 0
-        output['radicals'] = ''
-
-    return output
-
-
-def word_data(word : str) -> dict:
-
-    try:
-        request = Word.request(word)
-        defintions = []
-        data = request.data[0]
-        for defintion in data.senses:
-            if defintion.parts_of_speech == ['Wikipedia definition']:
-                break
-            defintions.append(defintion.english_definitions)
-        output = {
-            'word' : word,
-            'definitions' : str(defintions).replace('[[', '(').replace(']]', ')').replace('[', '(').replace(']', ')').replace("'", ''), # reformatring [['']] as it might become link
-            'reading' : data.japanese[0].reading
-        }
-        return output
-    except:
-            print(f"Now would be a good time to write to report.txt or something eh? {word} is returning empty")
-            return {
-            'word' : f'{word}',
-            'definitions' : '()',
-            'reading' : word
-        }
-def sentence_data(sentence : str) -> dict:
-    output = {
-        'sentence' : sentence,
-        'translation' : gt.translate(sentence, 'en', 'ja'),
-
-    }
-    return output
-def write_card(lines : str, path : str):
-    with open(path, 'w',encoding="utf-8") as file:
-        file.write(lines)
-    return
-def write_sentences_to_content_md(sentences: list[str]):
-    this_content_md = content_path + f'/{current_name}.md'
-    with open(this_content_md, 'a', encoding='utf8') as file:
-        file.write('\n')
-        for line in sentences:
-            file.write(f'[[{line}]]' + '\n')
-        file.close()
-    return
-def write_sentence_cards(s : str):
-    if skip_sentences == False:
-        sentence_card(sentence_data(s))
-    else:
-        sentence_card_skipped(s)
-    return
-
-def write_word_cards(word : str):
-    word_card(word_data(word))
-    return
-def write_kanji_cards(kanjis : str):
-    kanji_card(kanji_data(kanjis))
-    return
-
-def format_link_names (item : str) -> str :
-    return f'[[{item}]]\n'
-def make_notes ():
-    word_punctuation = string.punctuation + r'！＂”“＃＄％＆＇（）＊＋，－．／：；＜＝＞？＠［＼］＾＿｀｛｜｝～、。〃〄々〆〇〈〉《》「」『』【】〒〓〔〕〖〗〘〙〚〛〜〝〞〟〠〡〢〣〤〥〦〧〨〩〪〭〮〯〫〬〰〱〲〳〴〵〶〷〸〹〺〻〼〽〾｟｠｡｢｣､･〿'
-    punctuation = ['\n', '.', '?', '!', ' 〪', '。', ' 〭', '！', '．', '？']
-    global current_name
-    new_content = get_sentences()
-    count = 0
-    length = len(new_content.items()) - 1
-    for name, sentences in new_content.items():
-        current_name = name
-        temp = ''
-        for sentence in sentences:
-            temp += sentence
-        print(f'sentence lists done for {current_name}')
-        words = []
-        words_temp = parser(temp)
-
-        for w in words_temp:
-            if w not in words and w not in word_punctuation and w not in punctuation:
-                words.append(w)
-        print(f'word lists done for {current_name}')
-        kanji_list_temp = [k for k in kanji_set if k in temp]
-        kanji_list = []
-        for k in kanji_list_temp:
-            if k not in kanji_list:
-                kanji_list.append(k)
-        print(f'kanji lists done for {current_name}')
-        print(f'now calling APIs')
-
-        with ThreadPoolExecutor() as executor:
-            executor.submit(append_content, name)
-            future_b = executor.submit(write_to_sentences, sentences)
-            future_d = executor.submit(write_to_kanji, kanji_list)
-            future_c = executor.submit(write_to_words, words)
-
-
-            edit_sentences = future_b.result()
-            edit_kanji = future_d.result()
-            edit_words = future_c.result()
-
-            kl = list(executor.map(format_link_names, kanji_list))
-            wl = list(executor.map(format_link_names, words))
-            sl = list(executor.map(format_link_names, sentences))
-
-            add_new_stuff(kl, wl, sl)
-            if len(edit_kanji) > 0:
-               executor.map(edit_kanji_tags, edit_kanji)
-            if len(edit_sentences) > 0:
-                executor.map(edit_sentence_tags, edit_sentences)
-            if len(edit_words) > 0:
-                executor.map(edit_words_tags, edit_words)
-
-            executor.map(write_kanji_cards, kanji_list)
-            executor.submit(write_sentences_to_content_md, sentences)
-            executor.map(write_sentence_cards, sentences)
-            executor.map(write_word_cards, words)
-
-            executor.shutdown(wait=True)
-        if count < length:
-            print("API calls are done, next loop")
-            count +=1
-            continue
-        print("It is done, Enjoy your notes")
-
-class Flashcard:
-    def __init__ (self, front : str, back : str):
-        self.Front = front.replace('[', '').replace(']', '')
-        self.Back = back
-        self.Cloze = ''
-        if '[[' in front and len(front.replace('[[', '').replace(']', '')) > 1:
-            temp = front.replace('[[', '{').replace(']]', '}}')
-            result = ''
-            count = 1
-            for t in temp:
-                if t != '{':
-                    result += t
-                    continue
-                result += '{{' + f'c{count}::'
-                count += 1
-            self.Cloze = result
-def files_to_flashcard_class(file_paths : list[int]) -> list[dict]:
-    output = []
-    lines = []
-    for path in file_paths:
-        with open(path, 'r', encoding="utf-8") as file:
-            lines = file.readlines()
-        front_index = 3 # need a better way of setting front_index
-
-        if front_index < 0: continue
-        back_index, tag_index = 0, 0
-        for i in range(front_index, len(lines)):
-            if 'Back:' not in lines[i]: continue
-            lines[i].replace("Back: ", "")
-            back_index = i
-            break
-        if back_index == 0: continue
-
-        for i in range(len(lines)-1, back_index, -1):
-            if 'Tags: [[' not in lines[i]: continue
-            tag_index = i
-            break
-        front_range = range(front_index, back_index)
-        back_range = range(back_index, tag_index)
-        front, back = '', ''
-        for i in front_range:
-            front += lines[i]
-        for i in back_range:
-
-            back += lines[i]
-        output.append(Flashcard(front, back).__dict__)
-
-    return output
-def flashcards_to_csv (flashcards : list[dict], csv_file_path : str, cloze_path : str):
-    regular_fieldnames = ['Front', 'Back']
-    cloze_fieldnames = ['Cloze', 'Back']
-    with open(csv_file_path, 'w', encoding="utf-8", newline='') as regular_csv_file, \
-        open(cloze_path, 'w', encoding="utf-8", newline='') as cloze_csv_file:
-        regular_csv_writer = csv.DictWriter(regular_csv_file, regular_fieldnames)
-        cloze_csv_writer = csv.DictWriter(cloze_csv_file, cloze_fieldnames)
-        for card in flashcards:
-            back = card['Back']
-            cloze_csv_writer.writerow({'Cloze': card['Cloze'], 'Back': back})
-            regular_csv_writer.writerow({'Front': card['Front'], 'Back': back})
-def make_csvs ():
-    input_csv_sentences = glob.glob(f"{sentences_path}\*.md")
-    input_csv_words = glob.glob(f"{words_path}\*.md")
-    input_csv_kanji = glob.glob(f"{kanji_path}\*.md")
-    flashcards_to_csv(files_to_flashcard_class(input_csv_sentences), f'{csv_path}\Sentences.csv', f'{csv_path}\Sentences_cloze.csv')
-    flashcards_to_csv(files_to_flashcard_class(input_csv_words), f'{csv_path}\Words.csv', f'{csv_path}\Words_cloze.csv')
-    flashcards_to_csv(files_to_flashcard_class(input_csv_kanji), f'{csv_path}\Kanji.csv', f'{csv_path}\Kanji_cloze.csv')
-def ask_for_translations(n : int):
-    global skip_sentences
-    print(r"This program uses Google Translate for sentence translations. If you have more accurate translations, you might want to skip this step.")
-    print(r"Include sentence translations?")
-    print(r"WARNING YOU WILL HAVE TO QUIT IF YOU ENTER THIS INCORRECTLY.")
-    answer = input(r'Y (for yes) or N (for no)').lower()
-    match answer:
-        case 'y':
-            print(r"Alright, translations will be there.")
-            ready(n)
-        case 'n':
-            print(r"Alright, no translations")
-            skip_sentences = True
-            ready(n)
-        case _:
-            print("that's not an answer I understand.")
-            ask_for_translations()
-def ask_for_csvs ():
-    print(r"do you want the .csv files (for Anki)?")
-    answer = input(r'Y (for yes) or N (for no)').lower()
-    match answer:
-        case 'y':
-            just_csvs()
-        case 'n':
-            ask_for_translations(0)
-        case _:
-            print("that's not an answer I understand.")
-            ask_for_csvs()
-def just_csvs():
-    print(r"do you only want to make the .csv files (No new/overwriting markdown notes)?")
-    answer = input(r'Y (for yes) or N (for no)').lower()
-    match answer:
-        case 'y':
-            ready(2)
-        case 'n':
-            ask_for_translations(1)
-        case _:
-            print("that's not an answer I understand.")
-            just_csvs()
-def ready(n : int):
-    match n:
-        case 0:
-            print("So you want only the NOTES. Great :^)")
-        case 1:
-            print("so you want both the NOTES and the CSV files for Anki? Wonderful :-^)")
-        case 2:
-            print("so you want only the CSV files for Anki? Beautiful :^D")
-        case _:
-            print("We did something we shouldn't have, maybe it's a bitflip, maybe it's maybeline, sorry :C")
-            ask_for_csvs()
-    answer = input(r'Y (for yes) or N (for no)').lower()
-    match answer:
-        case 'y':
-            match n:
-                case 0:
-                    print("Creating just notes")
-                    make_notes()
-                case 1:
-                    print("Creating notes and csv files")
-                    make_notes()
-                    make_csvs()
-                case 2:
-                    print("creating csv files")
-                    make_csvs()
-                case _:
-                    print("We did something we shouldn't have, maybe it's a bitflip, maybe it's fitblip, sorry :C")
-                    ask_for_csvs()
-        case 'n':
-            print(r" Mistakes happen, we'll start from the begining again. <(^~^)>")
-            ask_for_csvs()
-        case _:
-            print("that's not an answer I understand.")
-            ready(n)
-
-
-def main():
-    ask_for_csvs()
-if __name__ == '__main__':
-    main()
-*/
+// CheckTitle checks if a line matches the pattern of a wiki link title
+func checkTitle(title, test string) bool {
+	return title == fmt.Sprintf("[[%s]]\n", test)
+}
+
+// IntakeContent loads and processes text files from the 'New Content' directory
+func intakeContent() map[string]string {
+	output := make(map[string]string)
+	newContentPath := "./New Content"
+
+	files, err := filepath.Glob(filepath.Join(newContentPath, "*.txt"))
+	if err != nil || len(files) == 0 {
+		fmt.Printf("No new sources found. Place .txt files in %s to begin\n", newContentPath)
+		return nil
+	}
+
+	for _, txtFile := range files {
+		name := replaceSpaces(strings.TrimSuffix(filepath.Base(txtFile), ".txt"))
+
+		lines, err := readLines(txtFile)
+		if err != nil {
+			fmt.Printf("Error reading file %s: %v\n", txtFile, err)
+			continue
+		}
+		blob := ""
+		for _, line := range lines {
+			// Remove Latin characters and spaces
+			re := regexp.MustCompile(`[A-Za-z0-9]`)
+			temp := re.ReplaceAllString(line, "")
+			temp = strings.ReplaceAll(temp, " ", "")
+			if temp != "" {
+				blob += temp + "\n"
+			}
+		}
+
+		output[name] = blob
+
+		thisContentMd := filepath.Join(contentPath, name+".md")
+		err = os.WriteFile(thisContentMd, []byte(blob), 0644)
+		if err != nil {
+			fmt.Printf("Error writing to %s: %v\n", thisContentMd, err)
+		}
+	}
+
+	return output
+}
+
+// GetSentences extracts sentences from processed content
+func getSentences() map[string][]string {
+	punctuation := []string{"\n", ".", "?", "!", "〪", "。", "〭", "！", "．", "？"}
+	sources := intakeContent()
+	output := make(map[string][]string)
+
+	if sources == nil {
+		return output
+	}
+
+	for name := range sources {
+		output[name] = []string{}
+	}
+
+	for name, content := range sources {
+		sentence := ""
+		for _, char := range content {
+			isPunctuation := false
+			for _, p := range punctuation {
+				if string(char) == p {
+					isPunctuation = true
+					break
+				}
+			}
+
+			if !isPunctuation {
+				sentence += string(char)
+			} else {
+				if sentence != "" {
+					output[name] = append(output[name], sentence)
+					sentence = ""
+				}
+			}
+		}
+		if sentence != "" { // Add remaining content
+			output[name] = append(output[name], sentence)
+		}
+	}
+
+	return output
+}
+
+// SentenceToWordString converts a sentence to a string of linked words
+func sentenceToWordString(sentence string) string {
+	// Word punctuation to remove
+	punctRe := regexp.MustCompile(`[[:punct:]]|！|＂|"|"|＃|＄|％|＆|＇|（|）|＊|＋|，|－|．|／|：|；|＜|＝|＞|？|＠|［|＼|］|＾|＿|｀|｛|｜|｝|～|、|。|〃|〄|々|〆|〇|〈|〉|《|》|「|」|『|』|【|】|〒|〓|〔|〕|〖|〗|〘|〙|〚|〛|〜|〝|〞|〟|〠|〡|〢|〣|〤|〥|〦|〧|〨|〩|〪|〭|〮|〯|〫|〬|〰|〱|〲|〳|〴|〵|〶|〷|〸|〹|〺|〻|〼|〽|〾|｟|｠|｡|｢|｣|､|･|〿`)
+
+	wordsString := punctRe.ReplaceAllString(strings.Join(parser(sentence), " "), "")
+
+	var tempArray []string
+	for _, word := range strings.Fields(wordsString) {
+		containsKanji := false
+		for _, c := range word {
+			if containsRune(kanjiSet, string(c)) || containsRune(oldKanji, string(c)) {
+				containsKanji = true
+				break
+			}
+		}
+
+		if containsKanji {
+			tempArray = append(tempArray, fmt.Sprintf("[[Words/%s|%s]]", word, word))
+		} else {
+			tempArray = append(tempArray, fmt.Sprintf("[[%s]]", word))
+		}
+	}
+
+	return strings.Join(tempArray, " ")
+}
+
+// WordToKanjiString converts a word to a string with linked kanji
+func wordToKanjiString(word string) string {
+	var result strings.Builder
+
+	for _, c := range word {
+		charStr := string(c)
+		if containsRune(kanjiSet, charStr) || containsRune(oldKanji, charStr) {
+			result.WriteString(fmt.Sprintf("[[Kanji/%s|%s]]", charStr, charStr))
+		} else {
+			result.WriteString(charStr)
+		}
+	}
+
+	return result.String()
+}
+
+// Helper function to check if a rune is in a slice
+func containsRune(slice []string, r string) bool {
+	for _, item := range slice {
+		if item == r {
+			return true
+		}
+	}
+	return false
+}
+
+// ReplaceSpaces replaces spaces in tags with underscores
+func replaceSpaces(tag string) string {
+	return strings.ReplaceAll(tag, " ", "_")
+}
+
+// === File Management Functions ===
+
+// AppendContent appends a new content entry to the main content markdown file
+func appendContent(name string) {
+	f, err := os.OpenFile(contentMd, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		fmt.Printf("Error opening %s: %v\n", contentMd, err)
+		return
+	}
+	defer f.Close()
+
+	_, err = f.WriteString(fmt.Sprintf("[[%s]]\n", name))
+	if err != nil {
+		fmt.Printf("Error writing to %s: %v\n", contentMd, err)
+	}
+}
+func readLines(s string) ([]string, error) {
+	file, err := os.Open(s)
+	if err != nil {
+		fmt.Println("Error reading file:", err)
+		return nil, err
+	}
+	defer file.Close()
+
+	scanner := bufio.NewScanner(file)
+	var output []string
+	for scanner.Scan() {
+		output = append(output, scanner.Text())
+	}
+
+	if err := scanner.Err(); err != nil {
+		fmt.Println("Error reading file:", err)
+		return nil, err
+	}
+	return output, nil
+}
+
+// AppendSentence checks if a sentence exists in the sentences index
+func appendSentence(sentence string) bool {
+	lines, err := readLines(sentencesMd)
+	if err != nil {
+		return false
+	}
+
+	for _, line := range lines {
+		if checkTitle(line+"\n", sentence) {
+			return true
+		}
+	}
+	return false
+}
+
+// AppendKanji checks if a kanji exists in the kanji index
+func appendKanji(kanji string) bool {
+	lines, err := readLines(kanjiMd)
+	if err != nil {
+		return false
+	}
+	for _, line := range lines {
+		if checkTitle(line+"\n", kanji) {
+			return true
+		}
+	}
+	return false
+}
+
+// AddNewStuff adds new entries to respective index files
+func addNewStuff(kl, wl, sl []string) {
+	// Update kanji index
+	if len(kl) > 0 {
+		f, err := os.OpenFile(kanjiMd, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+		if err != nil {
+			fmt.Printf("Error opening %s: %v\n", kanjiMd, err)
+		} else {
+			for _, k := range kl {
+				f.WriteString(k)
+			}
+			f.Close()
+		}
+	}
+
+	// Update words index
+	if len(wl) > 0 {
+		f, err := os.OpenFile(wordsMd, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+		if err != nil {
+			fmt.Printf("Error opening %s: %v\n", wordsMd, err)
+		} else {
+			for _, w := range wl {
+				f.WriteString(w)
+			}
+			f.Close()
+		}
+	}
+
+	// Update sentences index
+	if len(sl) > 0 {
+		f, err := os.OpenFile(sentencesMd, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+		if err != nil {
+			fmt.Printf("Error opening %s: %v\n", sentencesMd, err)
+		} else {
+			for _, s := range sl {
+				f.WriteString(s)
+			}
+			f.Close()
+		}
+	}
+}
+
+// AppendWord checks if a word exists in the words index
+func appendWord(word string) bool {
+	lines, err := readLines(wordsMd)
+	if err != nil {
+		fmt.Printf("Error reading %s: %v\n", wordsMd, err)
+		return false
+	}
+	for _, line := range lines {
+		if checkTitle(line+"\n", word) {
+			return true
+		}
+	}
+	return false
+}
+
+// === Tag Editing Functions ===
+
+// EditKanjiTags adds current content tag to a kanji's metadata
+func editKanjiTags(item string) {
+	path := filepath.Join(kanjiPath, item+".md")
+	lines, err := readLines(path)
+	if err != nil {
+		return
+	}
+	for i, line := range lines {
+		if strings.Contains(line, "Tags: ") {
+			lines[i] = fmt.Sprintf("%s [[%s]]", strings.TrimSpace(line), currentName)
+			break
+		}
+	}
+
+	err = os.WriteFile(path, []byte(strings.Join(lines, "\n")), 0644)
+	if err != nil {
+		fmt.Printf("Error writing to %s: %v\n", path, err)
+	}
+}
+
+// EditSentenceTags adds current content tag to a sentence's metadata
+func editSentenceTags(item string) {
+	path := filepath.Join(sentencesPath, item+".md")
+	lines, err := readLines(path)
+	if err != nil {
+		return
+	}
+	for i, line := range lines {
+		if strings.Contains(line, "Tags: ") {
+			lines[i] = fmt.Sprintf("%s [[%s]]", strings.TrimSpace(line), currentName)
+			break
+		}
+	}
+
+	err = os.WriteFile(path, []byte(strings.Join(lines, "\n")), 0644)
+	if err != nil {
+		fmt.Printf("Error writing to %s: %v\n", path, err)
+	}
+}
+
+// EditWordsTags adds current content tag to a word's metadata
+func editWordsTags(item string) {
+	path := filepath.Join(wordsPath, item+".md")
+	lines, err := readLines(path)
+	if err != nil {
+		return
+	}
+	for i, line := range lines {
+		if strings.Contains(line, "Tags: ") {
+			lines[i] = fmt.Sprintf("%s [[%s]]", strings.TrimSpace(line), currentName)
+			break
+		}
+	}
+
+	err = os.WriteFile(path, []byte(strings.Join(lines, "\n")), 0644)
+	if err != nil {
+		fmt.Printf("Error writing to %s: %v\n", path, err)
+	}
+}
+
+// === Data Processing Functions ===
+
+// WriteToKanji writes kanji to index and returns list of existing items
+func writeToKanji(lst []string) []string {
+	var existing []string
+	for _, k := range lst {
+		if appendKanji(k) {
+			existing = append(existing, k)
+		}
+	}
+	return existing
+}
+
+// WriteToWords writes words to index and returns list of existing items
+func writeToWords(lst []string) []string {
+	var existing []string
+	for _, w := range lst {
+		if appendWord(w) {
+			existing = append(existing, w)
+		}
+	}
+	return existing
+}
+
+// WriteToSentences writes sentences to index and returns list of existing items
+func writeToSentences(lst []string) []string {
+	var existing []string
+	for _, s := range lst {
+		if appendSentence(s) {
+			existing = append(existing, s)
+		}
+	}
+	return existing
+}
+
+// === Flashcard Creation Functions ===
+
+// SentenceCard generates sentence flashcard markdown file
+func sentenceCard(data SentenceData) {
+	content := []string{
+		"TARGET DECK: Sentences",
+		"START",
+		"Basic",
+		sentenceToWordString(data.Sentence),
+		fmt.Sprintf("Back: %s", data.Translation),
+		fmt.Sprintf("Tags: [[%s]]", currentName),
+		"",
+		"END",
+	}
+	writeCard(strings.Join(content, "\n"), filepath.Join(sentencesPath, data.Sentence+".md"))
+}
+func debugger(a any) {
+	debug.PrintStack() // similar to a breakpoint: prints the stack trace
+	fmt.Println(a)
+}
+
+// SentenceCardSkipped generates sentence flashcard without translation
+func sentenceCardSkipped(sentence string) {
+	content := []string{
+		"TARGET DECK: Sentences",
+		"START",
+		"Basic",
+		sentenceToWordString(sentence),
+		"Back: ",
+		fmt.Sprintf("Tags: [[%s]]", currentName),
+		"",
+		"END",
+	}
+
+	writeCard(strings.Join(content, "\n"), filepath.Join(sentencesPath, sentence+".md"))
+}
+
+// WordCard generates word flashcard markdown file
+func wordCard(data WordData) {
+	content := []string{
+		"TARGET DECK: Words",
+		"START",
+		"Basic",
+		wordToKanjiString(data.Word),
+		fmt.Sprintf("Back: %s", data.Definitions),
+		data.Reading,
+		fmt.Sprintf("Tags: [[%s]]", currentName),
+		"",
+		"END",
+	}
+
+	writeCard(strings.Join(content, "\n"), filepath.Join(wordsPath, data.Word+".md"))
+}
+
+func clearDir(dir string) error {
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		return err
+	}
+
+	for _, entry := range entries {
+		path := filepath.Join(dir, entry.Name())
+		err := os.RemoveAll(path)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// KanjiCard generates kanji flashcard markdown file
+func kanjiCard(data KanjiData) {
+	content := []string{
+		"TARGET DECK: Kanji",
+		"START",
+		"Basic",
+		fmt.Sprintf("%s, %d", data.Kanji, data.Strokes),
+		fmt.Sprintf("Back: %s", data.Keyword),
+		data.Readings,
+		data.Radicals,
+		fmt.Sprintf("Tags: [[%s]]", currentName),
+		"",
+		"END",
+	}
+
+	writeCard(strings.Join(content, "\n"), filepath.Join(kanjiPath, data.Kanji+".md"))
+}
+
+// === Data Fetching Functions (Dummy versions) ===
+
+// KanjiData fetches kanji data (dummy function replacing Jisho API)
+func fetchKanjiData(kanji string) KanjiData {
+	// Dummy implementation - would be replaced with actual implementation
+	return KanjiData{
+		Kanji:    kanji,
+		Keyword:  "meaning of " + kanji,
+		Readings: "on reading, kun reading",
+		Strokes:  10,
+		Radicals: "radical1, radical2",
+	}
+}
+
+// WordData fetches word data (dummy function replacing Jisho API)
+func fetchWordData(word string) WordData {
+	// Dummy implementation - would be replaced with actual implementation
+	return WordData{
+		Word:        word,
+		Definitions: "(meaning1, meaning2)",
+		Reading:     word,
+	}
+}
+
+// SentenceData generates sentence data with translation
+func fetchSentenceData(sentence string) SentenceData {
+	// Dummy implementation - would be replaced with actual implementation
+	return SentenceData{
+		Sentence:    sentence,
+		Translation: "Translation of: " + sentence,
+	}
+}
+
+// === Utility Functions ===
+
+// WriteCard writes formatted content to a markdown file
+func writeCard(content, path string) {
+	err := os.WriteFile(path, []byte(content), 0644)
+	if err != nil {
+		fmt.Printf("Error writing to %s: %v\n", path, err)
+	}
+}
+
+// WriteSentencesToContentMd appends sentence links to content markdown file
+func writeSentencesToContentMd(sentences []string) {
+	f, err := os.OpenFile(filepath.Join(contentPath, currentName+".md"), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		fmt.Printf("Error opening %s: %v\n", filepath.Join(contentPath, currentName+".md"), err)
+		return
+	}
+	defer f.Close()
+
+	f.WriteString("\n")
+	for _, s := range sentences {
+		f.WriteString(fmt.Sprintf("[[%s]]\n", s))
+	}
+}
+
+// === CSV Export Functions ===
+
+// FilesToFlashcardClass converts markdown flashcard files to Flashcard dictionaries
+func filesToFlashcardClass(filePaths []string) []FlashcardDict {
+	var output []FlashcardDict
+
+	for _, path := range filePaths {
+		lines, _ := readLines(path)
+		for i := range lines {
+			lines[i] = strings.TrimSpace(lines[i])
+		}
+
+		// Find Basic section
+		frontIndex := -1
+		for i, line := range lines {
+			if line == "Basic" {
+				frontIndex = i + 1
+				break
+			}
+		}
+		if frontIndex == -1 {
+			continue
+		}
+
+		// Find Back section
+		backIndex := -1
+		for i, line := range lines {
+			if strings.HasPrefix(line, "Back:") {
+				backIndex = i
+				break
+			}
+		}
+		if backIndex == -1 {
+			continue
+		}
+
+		// Find Tags section
+		tagIndex := -1
+		for i, line := range lines {
+			if strings.HasPrefix(line, "Tags:") {
+				tagIndex = i
+				break
+			}
+		}
+		if tagIndex == -1 {
+			continue
+		}
+
+		// Extract content
+		front := strings.Join(lines[frontIndex:backIndex], "\n")
+		back := strings.Join(lines[backIndex:tagIndex], "\n")
+		back = strings.Replace(back, "Back: ", "", 1)
+
+		output = append(output, FlashcardDict{
+			Front: front,
+			Back:  back,
+			Cloze: "", // We're not using cloze in this implementation
+		})
+	}
+
+	return output
+}
+
+// FlashcardsToCSV exports flashcards to CSV files for Anki import
+func flashcardsToCSV(flashcards []FlashcardDict, csvFilePath, clozePath string) {
+	// Create regular CSV file
+	regularFile, err := os.Create(csvFilePath)
+	if err != nil {
+		fmt.Printf("Error creating %s: %v\n", csvFilePath, err)
+		return
+	}
+	defer regularFile.Close()
+
+	regularWriter := csv.NewWriter(regularFile)
+	defer regularWriter.Flush()
+
+	// Write header
+	err = regularWriter.Write([]string{"Front", "Back"})
+	if err != nil {
+		fmt.Printf("Error writing to %s: %v\n", csvFilePath, err)
+		return
+	}
+
+	// Create cloze CSV file
+	clozeFile, err := os.Create(clozePath)
+	if err != nil {
+		fmt.Printf("Error creating %s: %v\n", clozePath, err)
+		return
+	}
+	defer clozeFile.Close()
+
+	clozeWriter := csv.NewWriter(clozeFile)
+	defer clozeWriter.Flush()
+
+	// Write header
+	err = clozeWriter.Write([]string{"Cloze", "Back"})
+	if err != nil {
+		fmt.Printf("Error writing to %s: %v\n", clozePath, err)
+		return
+	}
+
+	// Write data
+	for _, card := range flashcards {
+		err = regularWriter.Write([]string{card.Front, card.Back})
+		if err != nil {
+			fmt.Printf("Error writing to %s: %v\n", csvFilePath, err)
+		}
+
+		if card.Cloze != "" {
+			err = clozeWriter.Write([]string{card.Cloze, card.Back})
+			if err != nil {
+				fmt.Printf("Error writing to %s: %v\n", clozePath, err)
+			}
+		}
+	}
+}
+
+// MakeCSVs generates CSV files from all markdown flashcards
+func makeCSVs() {
+	// Get all markdown files
+	inputSentences, _ := filepath.Glob(filepath.Join(sentencesPath, "*.md"))
+	inputWords, _ := filepath.Glob(filepath.Join(wordsPath, "*.md"))
+	inputKanji, _ := filepath.Glob(filepath.Join(kanjiPath, "*.md"))
+
+	// Process sentences
+	flashcardsToCSV(
+		filesToFlashcardClass(inputSentences),
+		filepath.Join(csvPath, "Sentences.csv"),
+		filepath.Join(csvPath, "Sentences_cloze.csv"),
+	)
+
+	// Process words
+	flashcardsToCSV(
+		filesToFlashcardClass(inputWords),
+		filepath.Join(csvPath, "Words.csv"),
+		filepath.Join(csvPath, "Words_cloze.csv"),
+	)
+
+	// Process kanji
+	flashcardsToCSV(
+		filesToFlashcardClass(inputKanji),
+		filepath.Join(csvPath, "Kanji.csv"),
+		filepath.Join(csvPath, "Kanji_cloze.csv"),
+	)
+}
+
+// MakeNotes generates notes from source content
+func makeNotes() {
+	// Get all sentences
+	sentencesBySource := getSentences()
+	if len(sentencesBySource) == 0 {
+		fmt.Println("No content to process")
+		return
+	}
+	for source, sentences := range sentencesBySource {
+		currentName = source
+		appendContent(source)
+
+		var kanjiList []string
+		var wordList []string
+
+		// Process sentences
+		for _, sentence := range sentences {
+			fmt.Println(sentence)
+			words := parser(sentence)
+
+			// Extract kanji
+			for _, word := range words {
+				for _, c := range word {
+					if containsRune(kanjiSet, string(c)) && !containsRune(kanjiList, string(c)) && !containsRune(oldKanji, string(c)) {
+						kanjiList = append(kanjiList, string(c))
+					}
+				}
+			}
+
+			// Extract words
+			for _, word := range words {
+				hasKanji := false
+				for _, c := range word {
+					if containsRune(kanjiSet, string(c)) {
+						hasKanji = true
+						break
+					}
+				}
+
+				if hasKanji && !containsRune(wordList, word) && !containsRune(oldWords, word) {
+					wordList = append(wordList, word)
+				}
+			}
+		}
+
+		// Create flashcards
+		var wg sync.WaitGroup
+
+		// Process kanji
+		for _, k := range kanjiList {
+			wg.Add(1)
+			go func(k string) {
+				defer wg.Done()
+				kData := fetchKanjiData(k)
+				kanjiCard(kData)
+				editKanjiTags(k)
+			}(k)
+		}
+
+		// Process words
+		for _, w := range wordList {
+			wg.Add(1)
+			go func(w string) {
+				defer wg.Done()
+				wData := fetchWordData(w)
+				wordCard(wData)
+				editWordsTags(w)
+			}(w)
+		}
+
+		// Process sentences
+		for _, s := range sentences {
+			wg.Add(1)
+			go func(s string) {
+				defer wg.Done()
+				if skipSentences {
+					sentenceCardSkipped(s)
+				} else {
+					sData := fetchSentenceData(s)
+					sentenceCard(sData)
+				}
+				//editSentenceTags(s)
+			}(s)
+		}
+
+		wg.Wait()
+
+		// Update old lists
+		oldKanji = append(oldKanji, kanjiList...)
+		oldWords = append(oldWords, wordList...)
+
+		// Add new entries to index files
+		var kanjiEntries []string
+		var wordEntries []string
+		var sentenceEntries []string
+
+		for _, k := range kanjiList {
+			kanjiEntries = append(kanjiEntries, fmt.Sprintf("[[%s]]\n", k))
+		}
+
+		for _, w := range wordList {
+			wordEntries = append(wordEntries, fmt.Sprintf("[[%s]]\n", w))
+		}
+
+		for _, s := range sentences {
+			sentenceEntries = append(sentenceEntries, fmt.Sprintf("[[%s]]\n", s))
+		}
+
+		addNewStuff(kanjiEntries, wordEntries, sentenceEntries)
+		writeSentencesToContentMd(sentences)
+	}
+}
+
+// === User Interaction Functions ===
+
+// AskForTranslations prompts user about including sentence translations
+func askForTranslations(n int) {
+	fmt.Println("This program uses a translation service for sentence translations.")
+	fmt.Println("Include sentence translations? (Y/N)")
+
+	scanner := bufio.NewScanner(os.Stdin)
+	for scanner.Scan() {
+		answer := strings.ToLower(scanner.Text())
+		if answer == "y" {
+			fmt.Println("Including sentence translations.")
+			ready(n)
+			return
+		} else if answer == "n" {
+			fmt.Println("Skipping sentence translations.")
+			skipSentences = true
+			ready(n)
+			return
+		}
+		fmt.Println("Please enter Y or N.")
+	}
+}
+
+// AskForCSVs prompts user about CSV generation
+func askForCSVs() {
+	fmt.Println("Generate CSV files for Anki? (Y/N)")
+
+	scanner := bufio.NewScanner(os.Stdin)
+	for scanner.Scan() {
+		answer := strings.ToLower(scanner.Text())
+		if answer == "y" {
+			justCSVs()
+			return
+		} else if answer == "n" {
+			askForTranslations(0)
+			return
+		}
+		fmt.Println("Please enter Y or N.")
+	}
+}
+
+// JustCSVs handles CSV-only generation option
+func justCSVs() {
+	fmt.Println("Generate only CSV files (no new notes)? (Y/N)")
+
+	scanner := bufio.NewScanner(os.Stdin)
+	for scanner.Scan() {
+		answer := strings.ToLower(scanner.Text())
+		if answer == "y" {
+			ready(2)
+			return
+		} else if answer == "n" {
+			askForTranslations(1)
+			return
+		}
+		fmt.Println("Please enter Y or N.")
+	}
+}
+
+// Ready is final confirmation before processing
+func ready(n int) {
+	messages := map[int]string{
+		0: "Generating only notes",
+		1: "Generating notes and CSV files",
+		2: "Generating only CSV files",
+	}
+	fmt.Println(messages[n])
+	fmt.Print("Confirm (Y/N): ")
+
+	scanner := bufio.NewScanner(os.Stdin)
+	for scanner.Scan() {
+		confirm := strings.ToLower(scanner.Text())
+		if confirm == "y" {
+			if n == 0 || n == 1 {
+				makeNotes()
+			}
+			if n == 1 || n == 2 {
+				makeCSVs()
+			}
+			return
+		} else if confirm == "n" {
+			fmt.Println("Restarting...")
+			askForCSVs()
+			return
+		}
+		fmt.Println("Please enter Y or N.")
+	}
+}
+
+// Main is the entry point of the application
+func main() {
+	askForCSVs()
+}
