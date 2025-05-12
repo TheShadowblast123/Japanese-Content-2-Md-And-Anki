@@ -1,69 +1,20 @@
 # Japanese Content 2 Md And Anki
 
-## Overview
+## RoadMap
 
-This Python script automates the creation of Japanese language learning notes, focusing on sentences, words, and kanji. It utilizes various APIs and markdown files for organizing and managing the notes.
+### Path to functionality
 
-## Prerequisites
+1. Make the Markdown work outside of just obsidian
+2. Use Google Translate for translations
+3. Use a local data source for getting word and kanji data
+4. Setup build pipeline to automatically create releases on commit
 
-Make sure you have the following dependencies installed:
+### Path to User Friendliness
+1. Basic QT GUI
+2. Abillity to add paths and files to check for new content
 
-- [Python](https://www.python.org/downloads/) (version 3.6 or later)
-- [pip](https://pip.pypa.io/en/stable/installation/)
-
-## Installation
-
-1. **Python Installation:**
-	- Download and install Python from [Python's official website](https://www.python.org/downloads/).
-	- During installation, make sure to check the option that adds Python to your system's PATH.
-
-2. **pip Installation:**
-	- For Windows, pip comes included with Python installation. No additional steps are needed.
-	- For other systems, follow the instructions on [pip's installation page](https://pip.pypa.io/en/stable/installation/).
-
-3. **Install Dependencies:**
-	- Open a terminal or command prompt.
-	- Navigate to the project directory.
-	- Run the following command to install project dependencies:
-
-- `jisho_api`
-- `MeCab`
-- `googletrans==4.0.0-rc1`
-- `concurrent.futures`
-
-You can install the required packages using:
-
-```bash
-pip install jisho-api-python MeCab googletrans==4.0.0-rc1
-```
-
-
-## Usage
-
-### 1. Prepare New Content:
-
-	- Place `.txt` files containing new content in the `./New Content` directory.
-
-### 2. Run the Script:
-
-	- Open a terminal or command prompt.
-	
-	- Navigate to the project directory.
-	
-	- Run the following command to execute the script:
-
-```bash
-python main.py
-```
-### 3. Review Output:
-The script will generate markdown notes and organize content in the specified directories.
-You can designate whether or not you want to choose making markdown notes, .csv files or both
-
-### 4. Anki Flashcards (Optional):
-If you want to use Anki for flashcards, import the generated .csv files into Anki.
-- `_cloze.csv` files are meant to be imported with a cloze note type.
- 
-- `_.csv` are meant to be imported with a special note type that takes a front, back, and optional typing for a better reviewing experience, but the basic note types should do just fine.
+### Desired features
+1. Deconjugation to link long conjugation chains to the base verb and give more context
  
 Use the .csv files in the Notes\Japanese Notes\CSV directory.
 ## Why Use This?
