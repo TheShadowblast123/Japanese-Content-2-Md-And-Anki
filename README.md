@@ -4,19 +4,24 @@
 
 ### Path to functionality
 
-1. Make the Markdown work outside of just obsidian
-2. Use Google Translate for translations
-3. Use a local data source for getting word and kanji data
-4. Setup build pipeline to automatically create releases on commit
+1. Acutally use the embeded data source for getting word and kanji data
+2. Setup build pipeline to automatically create releases on commit
 
 ### Path to User Friendliness
 1. Basic QT GUI
-2. Abillity to add paths and files to check for new content
+2. Path Handling
+3. Abillity to add paths and files to check for new content
+4. Abillity to create Anki decks instead of Csvs
 
 ### Desired features
 1. Deconjugation to link long conjugation chains to the base verb and give more context
- 
-Use the .csv files in the Notes\Japanese Notes\CSV directory.
+	a. Needs to link from verb to verb
+2. Working Cloze cards
+3. Translation
+
+### Known bugs
+1. Sentences with 0 words will create files (should probably not exist) 
+
 ## Why Use This?
 ### Dogma
  Before I can explain why I believe this tool is valuable, I must explain my beliefs about the language learning process. I believe that due to the low inherit reward of the process of learning a language, we must find a highly motivating source. Whether it is love, cultural appreciation, a favorite book, or the allure of the end goal, whatever motivates us must be enough to endure a long and arduous process that delays gratification. I also believe that we learn languages best from the language itself out in its natural habitat. Music, movies, books, comics, animations, social media, articles etc. all the different sources that contain the very language we wish to speak. For natives of the Latin alphabet, reading another language with the latin alphabet is rather easy, often a beginner can get most of the sounds correct and remembering words isn't that much of an issue. With Kanji, hiragana, and katakana, the aspiring Japanese learner has a lot to hold in working memory for each sentence. Also, Kanji having many meanings and pronunciations means that evenatually this learner will have to expand upon their previous notes with new information. Beyond the belief of motivation and the belief that regular language is the best source to learn from, I'd rather not have much more dogma about language learning.  
