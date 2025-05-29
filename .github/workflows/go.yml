@@ -1,46 +1,42 @@
-name: Go Multi-Platform Build
+# .github/workflows/release.yml
+name: goreleaser
 
 on:
-  push:
-    branches: [ "main" ]
   pull_request:
-    branches: [ "main" ]
+  push:
+    # run only against tags
+    tags:
+      - "*"
+
+permissions:
+  contents: write
+  # packages: write
+  # issues: write
+  # id-token: write
 
 jobs:
-  build:
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os: [ubuntu-22.04, ubuntu-latest, macos-latest, windows-latest]
-        arch: [amd64, arm64]
-        exclude:
-          # Exclude arm64 on Windows since GitHub doesn't provide arm64 Windows runners
-          - os: windows-latest
-            arch: arm64
-          # Exclude unsupported combinations (older Ubuntu doesn't support arm64)
-          - os: ubuntu-22.04
-            arch: arm64
+  goreleaser:
+    runs-on: ubuntu-latest
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-
-    - name: Set up Go
-      uses: actions/setup-go@v4
-      with:
-        go-version: '1.24'
-
-    - name: Set up QEMU (Linux ARM64)
-      if: matrix.arch == 'arm64' && runner.os == 'Linux'
-      uses: docker/setup-qemu-action@v3
-
-    - name: Build
-      run: go build -v ./...
-      env:
-        GOARCH: ${{ matrix.arch }}
-        CGO_ENABLED: 0  # Disable CGO for static binaries
-
-    - name: Test
-      run: go test -v ./...
-      env:
-        GOARCH: ${{ matrix.arch }}
-        CGO_ENABLED: 0
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: stable
+      # More assembly might be required: Docker logins, GPG, etc.
+      # It all depends on your needs.
+      - name: Run GoReleaser
+        uses: goreleaser/goreleaser-action@v6
+        with:
+          # either 'goreleaser' (default) or 'goreleaser-pro'
+          distribution: goreleaser
+          # 'latest', 'nightly', or a semver
+          version: "~> v2"
+          args: release --clean
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Your GoReleaser Pro key, if you are using the 'goreleaser-pro' distribution
+          # GORELEASER_KEY: ${{ secrets.GORELEASER_KEY }}
