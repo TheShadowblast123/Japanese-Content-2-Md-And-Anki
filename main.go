@@ -406,24 +406,61 @@ func handleVerbs(dictForm, verbType, form, base string) Verb {
 	}
 	return currentVerb
 }
+func skipVerbs(tokens []tokenizer.Token) []Word {
+	var output []Word
+	for _, token := range tokens {
+		features := token.Features()
+		if token.Class != tokenizer.KNOWN || getEnglishPOS(features[0]) == "symbol" {
+			continue
+		}
+		word := Word{
+			Pos:      features[0],
+			DictForm: features[6],
+			Form:     "",
+			Word:     token.Surface,
+		}
+		if len(WordLookup(token.Surface)) > 0 {
+			output = append(output, word)
+
+			continue
+		}
+		if len(WordLookup(features[6])) > 0 {
+			output = append(output, word)
+			continue
+		}
+
+		if strings.HasSuffix(features[6], "せる") {
+			test := strings.Split(features[6], "せ")[0] + "す"
+			if len(WordLookup(test)) == 0 {
+				output = append(output, word)
+				continue
+			}
+			word.DictForm = test
+			output = append(output, word)
+		} else {
+			continue
+		}
+
+		output = append(output, word)
+	}
+	return output
+
+}
 
 // Parser uses kagome for tokenization
-func parser(item string) []string {
+func parser(item string) []any {
 	// currently not functioning things
 	// No multi verbs
 	// No comprehensive map from augmentations to their respective definitions* particularly for verbs
 	// the verb type sucks but it probably won't end up changing :c
-	iTells := []string{"ち", "り", "に", "み", "び", "き", "ぎ"}
-	teTells := []string{"て", "で"}
-	taTells := []string{"た", "だ"}
-	tTells := []string{"ん", "っ"}
-	fmt.Println(iTells, teTells, taTells, tTells)
+	//iTells := []string{"ち", "り", "に", "み", "び", "き", "ぎ"}
+	//teTells := []string{"て", "で"}
+	//taTells := []string{"た", "だ"}
+	//tTells := []string{"ん", "っ"}
 	t := tokenizer.New()
 	tokens := t.Tokenize(item)
-	var words []Word
-	var output []string
+	var output []any
 	var currentVerb Verb
-	var verbs []Verb
 	for _, token := range tokens {
 		if token.Class != tokenizer.KNOWN {
 			continue
@@ -461,19 +498,17 @@ func parser(item string) []string {
 					}
 					break
 				}
-				verbs = append(verbs, currentVerb)
+				output = append(output, currentVerb)
 			}
 			currentVerb = Verb{}
 			continue
 		}
 
-		output = append(output, token.Surface)
-		fmt.Println(WordLookup(features[6]))
 		if currentVerb.Word.DictForm == "" {
 			if pos != "verb" {
 
-				words = append(
-					words,
+				output = append(
+					output,
 					Word{
 						Pos:      pos,
 						DictForm: features[6],
@@ -483,6 +518,22 @@ func parser(item string) []string {
 				)
 				continue
 			} else {
+
+				dictform := ""
+				if len(WordLookup(features[6])) > 0 {
+					dictform = features[6]
+				}
+
+				if dictform == "" && strings.HasSuffix(features[6], "せる") {
+					test := strings.Split(features[6], "せ")[0] + "す"
+					if len(WordLookup(test)) > 0 {
+						dictform = test
+					}
+				}
+				if dictform == "" {
+					dictform = features[6]
+				}
+
 				currentVerb = handleVerbs(features[6], features[4], features[5], token.Surface)
 				continue
 			}
@@ -493,18 +544,17 @@ func parser(item string) []string {
 				result := handleDictionaryFormVerbs(currentVerb.Word, token.Surface)
 				if result.Word.Form == "U" {
 					currentVerb.Word.Form = "dictionary"
-					verbs = append(verbs, currentVerb)
-					words = append(words, Word{Word: token.Surface, Form: "", DictForm: features[6], Pos: pos})
+					output = append(output, Word{Word: token.Surface, Form: "", DictForm: features[6], Pos: pos})
 				}
-				verbs = append(verbs, result)
+				output = append(output, currentVerb)
 				break
 			case "I":
 				result := handleConjunctiveFormVerbs(currentVerb.Word, token.Surface, pos)
-				verbs = append(verbs, result)
 				if pos != "verb" {
 
-					words = append(
-						words,
+					output = append(output, result)
+					output = append(
+						output,
 						Word{
 							Pos:      pos,
 							DictForm: features[6],
@@ -519,23 +569,25 @@ func parser(item string) []string {
 				}
 			case "A":
 				result := handleAFormVerbs(currentVerb.Word, token.Surface)
-				verbs = append(verbs, result)
+				output = append(output, result)
 				break
 			case "E Godan":
 				currentVerb.Word.Form = "Imperative"
 				switch token.Surface {
 				case "ば":
 					currentVerb.Augmentations = append(currentVerb.Augmentations, Augmentation{Description: "conditional", PhraseStart: false})
+					output = append(output, currentVerb)
 					break
 				case "いい":
 					currentVerb.Augmentations = append(currentVerb.Augmentations, Augmentation{Description: "_ should ~", PhraseStart: false})
+					output = append(output, currentVerb)
 					break
 				case "よかった":
 					currentVerb.Augmentations = append(currentVerb.Augmentations, Augmentation{Description: "_ should have ~", PhraseStart: false})
+					output = append(output, currentVerb)
 					break
 				default:
-					verbs = append(verbs, currentVerb)
-					words = append(words, Word{Word: token.Surface, Form: "", DictForm: features[6], Pos: pos})
+					output = append(output, Word{Word: token.Surface, Form: "", DictForm: features[6], Pos: pos})
 
 				}
 				break
@@ -546,27 +598,26 @@ func parser(item string) []string {
 				switch token.Surface {
 				case "れば":
 					currentVerb.Augmentations = append(currentVerb.Augmentations, Augmentation{Description: "conditional", PhraseStart: false})
-					verbs = append(verbs, currentVerb)
+					output = append(output, currentVerb)
 					break
 				case "いい":
 					currentVerb.Augmentations = append(currentVerb.Augmentations, Augmentation{Description: "_ should ~", PhraseStart: true})
-					verbs = append(verbs, currentVerb)
+					output = append(output, currentVerb)
 					break
 				case "よかった":
 					currentVerb.Augmentations = append(currentVerb.Augmentations, Augmentation{Description: "_ should have ~", PhraseStart: true})
-					verbs = append(verbs, currentVerb)
+					output = append(output, currentVerb)
 					break
 				case "ろ":
 					currentVerb.Augmentations = append(currentVerb.Augmentations, Augmentation{Description: "", PhraseStart: false})
-					verbs = append(verbs, currentVerb)
+					output = append(output, currentVerb)
 					break
 				case "よ":
 					currentVerb.Augmentations = append(currentVerb.Augmentations, Augmentation{Description: "", PhraseStart: false})
-					verbs = append(verbs, currentVerb)
+					output = append(output, currentVerb)
 					break
 				default:
-					verbs = append(verbs, currentVerb)
-					words = append(words, Word{Word: token.Surface, Form: "", DictForm: features[6], Pos: pos})
+					output = append(output, Word{Word: token.Surface, Form: "", DictForm: features[6], Pos: pos})
 
 					break
 
@@ -576,10 +627,10 @@ func parser(item string) []string {
 				if token.Surface == "う" {
 					currentVerb.Word.Word += "う"
 					currentVerb.Augmentations = append(currentVerb.Augmentations, Augmentation{Description: "lengthener", PhraseStart: false})
-					verbs = append(verbs, currentVerb)
+					output = append(output, currentVerb)
 					currentVerb = Verb{}
 				} else {
-					verbs = append(verbs, currentVerb)
+					output = append(output, currentVerb)
 					currentVerb = Verb{}
 				}
 				break
@@ -606,14 +657,12 @@ func parser(item string) []string {
 					currentVerb.Word.Form = "Te"
 					currentVerb.Word.Word += "てる"
 					currentVerb.Augmentations = append(currentVerb.Augmentations, Augmentation{Description: "Habitual", PhraseStart: false})
-					verbs = append(verbs, currentVerb)
 					currentVerb = Verb{}
 					continue
 				} else if token.Surface == "たら" {
 					currentVerb.Word.Form = "Ta"
 					currentVerb.Word.Word += "たら"
 					currentVerb.Augmentations = append(currentVerb.Augmentations, Augmentation{Description: "if/when", PhraseStart: false})
-					verbs = append(verbs, currentVerb)
 					currentVerb = Verb{}
 					continue
 				}
@@ -622,14 +671,14 @@ func parser(item string) []string {
 
 			case "Te":
 				result := handleTeFormVerbs(currentVerb.Word, token.Surface, pos)
-				verbs = append(verbs, result)
+				output = append(output, result)
 				break
 			case "Ta":
 				if currentVerb.Word.Word == "曲がりくねっ" {
 					fmt.Println("bruh")
 				}
 				result := handleTaFormVerbs(currentVerb.Word, token.Surface)
-				verbs = append(verbs, result)
+				output = append(output, result)
 				break
 			case "I + T":
 				if strings.HasSuffix(token.Surface, "た") {
@@ -648,7 +697,7 @@ func parser(item string) []string {
 					currentVerb.Word.Word += "で"
 				}
 				result := handleConjunctiveFormVerbs(currentVerb.Word, token.Surface, pos)
-				verbs = append(verbs, result)
+				output = append(output, result)
 
 			default:
 				fmt.Println("AYO WTF IS THIS SHIT")
@@ -659,19 +708,6 @@ func parser(item string) []string {
 		}
 
 	}
-	for _, verb := range verbs {
-		s := ""
-		s += verb.Word.Word
-		if len(verb.Augmentations) != 0 {
-			s += ", "
-			for _, aug := range verb.Augmentations {
-
-				s += aug.Description
-			}
-		}
-		fmt.Println(s)
-	}
-	fmt.Println(words)
 	return output
 }
 func getEnglishPOS(s string) string {
@@ -1021,13 +1057,15 @@ func getSentences() map[string][]string {
 // SentenceToWordString converts a sentence to a string of linked words
 func sentenceToWordString(sentence string) string {
 	// Word punctuation to remove
-	punctRe := regexp.MustCompile(`[[:punct:]]|！|＂|"|"|＃|＄|％|＆|＇|（|）|＊|＋|，|－|．|／|：|；|＜|＝|＞|？|＠|［|＼|］|＾|＿|｀|｛|｜|｝|～|、|。|〃|〄|々|〆|〇|〈|〉|《|》|「|」|『|』|【|】|〒|〓|〔|〕|〖|〗|〘|〙|〚|〛|〜|〝|〞|〟|〠|〡|〢|〣|〤|〥|〦|〧|〨|〩|〪|〭|〮|〯|〫|〬|〰|〱|〲|〳|〴|〵|〶|〷|〸|〹|〺|〻|〼|〽|〾|｟|｠|｡|｢|｣|､|･|〿`)
-
-	wordsString := punctRe.ReplaceAllString(strings.Join(parser(sentence), " "), "")
-
+	words := parser(sentence)
 	var tempArray []string
-	for _, word := range strings.Fields(wordsString) {
-		tempArray = append(tempArray, fmt.Sprintf("[%s](%s\\%s.md)", word, wordsPath, word))
+	for _, word := range words {
+		switch v := word.(type) {
+		case Word:
+			tempArray = append(tempArray, fmt.Sprintf("[%s](%s\\%s.md)", v.Word, wordsPath, v.DictForm))
+		case Verb:
+			tempArray = append(tempArray, fmt.Sprintf("[%s](%s\\%s.md)", v.Word.Word, wordsPath, v.Word.DictForm))
+		}
 	}
 
 	return strings.Join(tempArray, " ")
@@ -1070,7 +1108,7 @@ func appendContent(name string) {
 	}
 	defer f.Close()
 
-	_, err = f.WriteString(fmt.Sprintf("[[%s]]\n", name))
+	_, err = f.WriteString(fmt.Sprintf("[%s](%s\\%s.md)\n", name, contentPath, name))
 	if err != nil {
 		fmt.Printf("Error writing to %s: %v\n", contentMd, err)
 	}
@@ -1193,7 +1231,7 @@ func editKanjiTags(item string) {
 	}
 	for i, line := range lines {
 		if strings.Contains(line, "Tags: ") {
-			lines[i] = fmt.Sprintf("%s [%s](%s\\%s.md) ", strings.TrimSpace(line), currentName, contentPath, currentName)
+			lines[i] = fmt.Sprintf("[%s](%s\\%s.md) ", currentName, contentPath, currentName)
 			break
 		}
 	}
@@ -1213,7 +1251,7 @@ func editSentenceTags(item string) {
 	}
 	for i, line := range lines {
 		if strings.Contains(line, "Tags: ") {
-			lines[i] = fmt.Sprintf("%s [%s](%s\\%s.md) ", strings.TrimSpace(line), currentName, sentencesPath, currentName)
+			lines[i] = fmt.Sprintf("[%s](%s\\%s.md) ", currentName, contentPath, currentName)
 			break
 		}
 	}
@@ -1233,7 +1271,7 @@ func editWordsTags(item string) {
 	}
 	for i, line := range lines {
 		if strings.Contains(line, "Tags: ") {
-			lines[i] = fmt.Sprintf("%s [%s](%s\\%s.md) ", strings.TrimSpace(line), currentName, wordsPath, currentName)
+			lines[i] = fmt.Sprintf("[%s](%s\\%s.md) ", strings.TrimSpace(line), currentName, contentPath, currentName)
 			break
 		}
 	}
@@ -1289,7 +1327,7 @@ func sentenceCard(data SentenceData) {
 		"Basic",
 		sentenceToWordString(data.Sentence),
 		fmt.Sprintf("Back: %s", data.Translation),
-		fmt.Sprintf("Tags: [[%s]]", currentName),
+		fmt.Sprintf("Tags: [%s](%s\\%s.md)", currentName, pathing.ContentPath, currentName),
 		"",
 		"END",
 	}
@@ -1308,7 +1346,7 @@ func sentenceCardSkipped(sentence string) {
 		"Basic",
 		sentenceToWordString(sentence),
 		"Back: ",
-		fmt.Sprintf("Tags: [[%s]]", currentName),
+		fmt.Sprintf("Tags: [%s](%s\\%s.md)", currentName, pathing.ContentPath, currentName),
 		"",
 		"END",
 	}
@@ -1335,7 +1373,7 @@ func wordCard(data []WordData) {
 		wordToKanjiString(data[0].Word),
 		fmt.Sprintf("Back: %s", definitions),
 		readings,
-		fmt.Sprintf("Tags: [[%s]]", currentName),
+		fmt.Sprintf("Tags: [%s](%s\\%s.md)", currentName, pathing.ContentPath, currentName),
 		"",
 		"END",
 	}
@@ -1370,7 +1408,7 @@ func kanjiCard(data KanjiData) {
 		fmt.Sprintf("Back: %s", data.Keyword),
 		data.Readings,
 		data.Radicals,
-		fmt.Sprintf("Tags: [[%s]]", currentName),
+		fmt.Sprintf("Tags: [%s](%s\\%s.md)", currentName, pathing.ContentPath, currentName),
 		"",
 		"END",
 	}
@@ -1429,7 +1467,7 @@ func writeCard(content, path string) {
 }
 
 // WriteSentencesToContentMd appends sentence links to content markdown file
-func writeSentencesToContentMd(sentences []string) {
+func writeSentencesToContentMd(sentences []string, path string) {
 	f, err := os.OpenFile(filepath.Join(contentPath, currentName+".md"), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
 		fmt.Printf("Error opening %s: %v\n", filepath.Join(contentPath, currentName+".md"), err)
@@ -1439,7 +1477,7 @@ func writeSentencesToContentMd(sentences []string) {
 
 	f.WriteString("\n")
 	for _, s := range sentences {
-		f.WriteString(fmt.Sprintf("[[%s]]\n", s))
+		f.WriteString(fmt.Sprintf("[%s](%s\\%s.md)\n", s, path, s))
 	}
 }
 
@@ -1602,34 +1640,47 @@ func makeNotes() {
 		appendContent(source)
 
 		var kanjiList []string
-		var wordList []string
+		var wordList []Word
+		var wordListString []string
 
 		// Process sentences
 		for _, sentence := range sentences {
 			fmt.Println(sentence)
 			words := parser(sentence)
-
+			fmt.Println(words)
 			// Extract kanji
 			for _, word := range words {
-				for _, c := range word {
-					if containsRune(kanjiSet, string(c)) && !containsRune(kanjiList, string(c)) && !containsRune(oldKanji, string(c)) {
-						kanjiList = append(kanjiList, string(c))
+				switch v := word.(type) {
+				case Word:
+					for _, c := range v.DictForm {
+
+						if containsRune(kanjiSet, string(c)) && !containsRune(kanjiList, string(c)) && !containsRune(oldKanji, string(c)) {
+							kanjiList = append(kanjiList, string(c))
+						}
+					}
+				case Verb:
+					for _, c := range v.Word.DictForm {
+
+						if containsRune(kanjiSet, string(c)) && !containsRune(kanjiList, string(c)) && !containsRune(oldKanji, string(c)) {
+							kanjiList = append(kanjiList, string(c))
+						}
 					}
 				}
 			}
 
 			// Extract words
 			for _, word := range words {
-				hasKanji := false
-				for _, c := range word {
-					if containsRune(kanjiSet, string(c)) {
-						hasKanji = true
-						break
+				switch v := word.(type) {
+				case Word:
+					if !containsRune(wordListString, v.DictForm) && !containsRune(oldWords, v.DictForm) {
+						wordList = append(wordList, v)
+						wordListString = append(wordListString, v.DictForm)
 					}
-				}
-
-				if hasKanji && !containsRune(wordList, word) && !containsRune(oldWords, word) {
-					wordList = append(wordList, word)
+				case Verb:
+					if !containsRune(wordListString, v.Word.DictForm) && !containsRune(oldWords, v.Word.DictForm) {
+						wordList = append(wordList, v.Word)
+						wordListString = append(wordListString, v.Word.DictForm)
+					}
 				}
 			}
 		}
@@ -1651,11 +1702,12 @@ func makeNotes() {
 		// Process words
 		for _, w := range wordList {
 			wg.Add(1)
-			go func(w string) {
+			go func(w Word) {
 				defer wg.Done()
-				wData := fetchWordData(w)
+
+				wData := fetchWordData(w.DictForm)
 				wordCard(wData)
-				editWordsTags(w)
+				//editWordsTags(w)
 			}(w)
 		}
 
@@ -1678,7 +1730,7 @@ func makeNotes() {
 
 		// Update old lists
 		oldKanji = append(oldKanji, kanjiList...)
-		oldWords = append(oldWords, wordList...)
+		oldWords = append(oldWords, wordListString...)
 
 		// Add new entries to index files
 		var kanjiEntries []string
@@ -1686,19 +1738,19 @@ func makeNotes() {
 		var sentenceEntries []string
 
 		for _, k := range kanjiList {
-			kanjiEntries = append(kanjiEntries, fmt.Sprintf("[[%s]]\n", k))
+			kanjiEntries = append(kanjiEntries, fmt.Sprintf("[%s](%s\\%s.md)\n", k, kanjiPath, k))
 		}
 
 		for _, w := range wordList {
-			wordEntries = append(wordEntries, fmt.Sprintf("[[%s]]\n", w))
+			wordEntries = append(wordEntries, fmt.Sprintf("[%s](%s\\%s.md)\n", w, wordsPath, w))
 		}
 
 		for _, s := range sentences {
-			sentenceEntries = append(sentenceEntries, fmt.Sprintf("[[%s]]\n", s))
+			sentenceEntries = append(sentenceEntries, fmt.Sprintf("[%s](%s\\%s.md)\n", s, sentencesPath, s))
 		}
 
 		addNewStuff(kanjiEntries, wordEntries, sentenceEntries)
-		writeSentencesToContentMd(sentences)
+		writeSentencesToContentMd(sentences, pathing.SentencesPath)
 	}
 }
 
