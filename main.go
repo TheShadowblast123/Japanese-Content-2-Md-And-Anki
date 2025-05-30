@@ -461,7 +461,7 @@ func parser(item string) []any {
 	tokens := t.Tokenize(item)
 	var output []any
 	var currentVerb Verb
-	for _, token := range tokens {
+	for i, token := range tokens {
 		if token.Class != tokenizer.KNOWN {
 			continue
 		}
@@ -535,6 +535,9 @@ func parser(item string) []any {
 				}
 
 				currentVerb = handleVerbs(features[6], features[4], features[5], token.Surface)
+				if i == len(tokens)-2 {
+					output = append(output, currentVerb)
+				}
 				continue
 			}
 
