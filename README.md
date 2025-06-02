@@ -1,12 +1,11 @@
 # Japanese Content 2 Md And Anki
 
+## WARNING CURRENT IMPLEMENTATION FEATURES A TEST ONLY DIRECTORY THAT GETS DELETED ON PROGRAM START
+
 ## RoadMap
 
 ### Path to User Friendliness
-1. Basic QT GUI
-2. Path Handling (technically handled, still using testing shtuff)
-3. Abillity to add paths and files to check for new content
-4. Abillity to create Anki decks instead of Csvs
+1. Abillity to create Anki decks instead of Csvs
 
 ### Desired features
 1. Deconjugation to link long conjugation chains to the base verb and give more context
