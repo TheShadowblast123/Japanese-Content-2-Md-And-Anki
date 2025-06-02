@@ -22,7 +22,12 @@ type Pathing struct {
 }
 
 func DefaultPathing() Pathing {
-	notesDir := filepath.Join("Notes", "Japanese Notes")
+	base, err := os.Getwd()
+	if err != nil {
+		panic(err)
+	}
+
+	notesDir := filepath.Join(base, filepath.Join("Notes", "Japanese Notes"))
 	return Pathing{
 		NotesDir:      notesDir,
 		ContentMd:     filepath.Join(notesDir, "Content.md"),

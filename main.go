@@ -4,6 +4,7 @@ import (
 	"bufio"
 	_ "embed"
 	"encoding/csv"
+	"encoding/json"
 	"encoding/xml"
 	"fmt"
 	"os"
@@ -16,6 +17,7 @@ import (
 
 	"github.com/TheShadowblast123/Japanese-Content-2-Md-And-Anki/path_handler"
 	"github.com/ikawaha/kagome/tokenizer"
+	"github.com/therecipe/qt/widgets"
 )
 
 type JMdict struct {
@@ -406,57 +408,13 @@ func handleVerbs(dictForm, verbType, form, base string) Verb {
 	}
 	return currentVerb
 }
-func skipVerbs(tokens []tokenizer.Token) []Word {
-	var output []Word
-	for _, token := range tokens {
-		features := token.Features()
-		if token.Class != tokenizer.KNOWN || getEnglishPOS(features[0]) == "symbol" {
-			continue
-		}
-		word := Word{
-			Pos:      features[0],
-			DictForm: features[6],
-			Form:     "",
-			Word:     token.Surface,
-		}
-		if len(WordLookup(token.Surface)) > 0 {
-			output = append(output, word)
-
-			continue
-		}
-		if len(WordLookup(features[6])) > 0 {
-			output = append(output, word)
-			continue
-		}
-
-		if strings.HasSuffix(features[6], "せる") {
-			test := strings.Split(features[6], "せ")[0] + "す"
-			if len(WordLookup(test)) == 0 {
-				output = append(output, word)
-				continue
-			}
-			word.DictForm = test
-			output = append(output, word)
-		} else {
-			continue
-		}
-
-		output = append(output, word)
-	}
-	return output
-
-}
 
 // Parser uses kagome for tokenization
 func parser(item string) []any {
 	// currently not functioning things
-	// No multi verbs
+	// No multi verbs *Do I really want that though?*
 	// No comprehensive map from augmentations to their respective definitions* particularly for verbs
 	// the verb type sucks but it probably won't end up changing :c
-	//iTells := []string{"ち", "り", "に", "み", "び", "き", "ぎ"}
-	//teTells := []string{"て", "で"}
-	//taTells := []string{"た", "だ"}
-	//tTells := []string{"ん", "っ"}
 	t := tokenizer.New()
 	tokens := t.Tokenize(item)
 	var output []any
@@ -1274,7 +1232,7 @@ func editWordsTags(item string) {
 	}
 	for i, line := range lines {
 		if strings.Contains(line, "Tags: ") {
-			lines[i] = fmt.Sprintf("[%s](%s\\%s.md) ", strings.TrimSpace(line), currentName, contentPath, currentName)
+			lines[i] = fmt.Sprintf("%s [%s](%s\\%s.md) ", strings.TrimSpace(line), currentName, contentPath, currentName)
 			break
 		}
 	}
@@ -1355,6 +1313,43 @@ func sentenceCardSkipped(sentence string) {
 	}
 
 	writeCard(strings.Join(content, "\n"), filepath.Join(sentencesPath, sentence+".md"))
+}
+
+// WordCard generates word flashcard markdown file
+func verbCard(data []WordData, verb Verb) {
+	definitions := ""
+	readings := ""
+	augs := ""
+	for _, d := range data {
+		definitions += fmt.Sprintf("%s, ", d.Definitions)
+	}
+	for _, r := range data {
+		if !strings.Contains(readings, r.Reading) {
+			readings += fmt.Sprintf("%s, ", r.Reading)
+		}
+	}
+
+	for i, a := range verb.Augmentations {
+		if i == len(verb.Augmentations)-1 {
+			augs += fmt.Sprintf("%s", a.Description)
+			break
+		}
+		augs += fmt.Sprintf("%s +", a.Description)
+	}
+	content := []string{
+		"TARGET DECK: Words",
+		"START",
+		"Basic",
+		wordToKanjiString(verb.Word.Word),
+		fmt.Sprintf("Back: %s", definitions),
+		augs,
+		readings,
+		fmt.Sprintf("Tags: [%s](%s\\%s.md)", currentName, pathing.ContentPath, currentName),
+		"",
+		"END",
+	}
+
+	writeCard(strings.Join(content, "\n"), filepath.Join(wordsPath, verb.Word.Word+".md"))
 }
 
 // WordCard generates word flashcard markdown file
@@ -1550,6 +1545,7 @@ func filesToFlashcardClass(filePaths []string) []FlashcardDict {
 // FlashcardsToCSV exports flashcards to CSV files for Anki import
 func flashcardsToCSV(flashcards []FlashcardDict, csvFilePath, clozePath string) {
 	// Create regular CSV file
+	fmt.Println(len(flashcards))
 	regularFile, err := os.Create(csvFilePath)
 	if err != nil {
 		fmt.Printf("Error creating %s: %v\n", csvFilePath, err)
@@ -1645,6 +1641,7 @@ func makeNotes() {
 		var kanjiList []string
 		var wordList []Word
 		var wordListString []string
+		var verbList []Verb
 
 		// Process sentences
 		for _, sentence := range sentences {
@@ -1683,6 +1680,7 @@ func makeNotes() {
 					if !containsRune(wordListString, v.Word.DictForm) && !containsRune(oldWords, v.Word.DictForm) {
 						wordList = append(wordList, v.Word)
 						wordListString = append(wordListString, v.Word.DictForm)
+						verbList = append(verbList, v)
 					}
 				}
 			}
@@ -1701,6 +1699,18 @@ func makeNotes() {
 				editKanjiTags(k)
 			}(k)
 		}
+		// Process verbs
+		for _, v := range verbList {
+			wg.Add(1)
+			go func(v Verb) {
+				defer wg.Done()
+
+				vData := fetchWordData(v.Word.DictForm)
+
+				verbCard(vData, v)
+				editWordsTags(v.Word.Word)
+			}(v)
+		}
 
 		// Process words
 		for _, w := range wordList {
@@ -1710,7 +1720,7 @@ func makeNotes() {
 
 				wData := fetchWordData(w.DictForm)
 				wordCard(wData)
-				//editWordsTags(w)
+				editWordsTags(w.Word)
 			}(w)
 		}
 
@@ -1725,7 +1735,7 @@ func makeNotes() {
 					sData := fetchSentenceData(s)
 					sentenceCard(sData)
 				}
-				//editSentenceTags(s)
+				editSentenceTags(s)
 			}(s)
 		}
 
@@ -2027,5 +2037,119 @@ func main() {
 		fmt.Println("\nIntransitive Test")
 		test = `ドアが開く前に、子供が起きてくる。窓が閉まるのを見たが、壊れる音がした。彼女は泣きながら走り去った。雨が降りそうで、電車が遅れがちだ。鍵がかかってしまい、中に入れなかった。疲れて寝てばかりいる。花が咲いてよかった。火が消えずにいる。時代が変わりつつある。風が止んだから出かけるつもりだ。彼の声が聞こえてほしい。ここに座ってもいい？ あの木が倒れそうだ。道が凍っていく。事件が解決したら知らせて。温度が下がりやすい。機械が動かなくなった。鳥が飛んでいく。霧が晴れてきた。夢が覚めるまいとした。波が静まるはずがない。息が続くかたを知りたい。光が増していく。涙が止まらなかった。時間が経つのは早い。 `
 		parser(test) */
-	askForCSVs()
+	//askForCSVs()
+	app := widgets.NewQApplication(len(os.Args), os.Args)
+
+	pathing := path_handler.DefaultPathing()
+
+	window := widgets.NewQMainWindow(nil, 0)
+	window.SetWindowTitle("Pathing Editor")
+	window.SetMinimumSize2(600, 400)
+
+	widget := widgets.NewQWidget(nil, 0)
+	layout := widgets.NewQVBoxLayout()
+
+	fields := make(map[string]*widgets.QLineEdit)
+	addField := func(label string, val string) {
+		group := widgets.NewQGroupBox2(label, nil)
+		groupLayout := widgets.NewQVBoxLayout()
+		input := widgets.NewQLineEdit(nil)
+		input.SetText(val)
+		fields[label] = input
+		groupLayout.AddWidget(input, 0, 0)
+		group.SetLayout(groupLayout)
+		layout.AddWidget(group, 0, 0)
+	}
+
+	addField("NotesDir", pathing.NotesDir)
+	addField("ContentMd", pathing.ContentMd)
+	addField("KanjiMd", pathing.KanjiMd)
+	addField("SentencesMd", pathing.SentencesMd)
+	addField("WordsMd", pathing.WordsMd)
+	addField("ContentPath", pathing.ContentPath)
+	addField("KanjiPath", pathing.KanjiPath)
+	addField("SentencesPath", pathing.SentencesPath)
+	addField("WordsPath", pathing.WordsPath)
+	addField("CsvPath", pathing.CsvPath)
+	addField("NewContent", pathing.NewContent)
+
+	modeSelector := widgets.NewQGroupBox2("Mode", nil)
+	modeLayout := widgets.NewQHBoxLayout()
+	modeRadioCsv := widgets.NewQRadioButton2("CSV Only", nil)
+	modeRadioNotes := widgets.NewQRadioButton2("Notes Only", nil)
+	modeRadioBoth := widgets.NewQRadioButton2("Both", nil)
+	modeRadioBoth.SetChecked(true)
+	modeLayout.AddWidget(modeRadioCsv, 0, 0)
+	modeLayout.AddWidget(modeRadioNotes, 0, 0)
+	modeLayout.AddWidget(modeRadioBoth, 0, 0)
+	modeSelector.SetLayout(modeLayout)
+	layout.AddWidget(modeSelector, 0, 0)
+
+	saveButton := widgets.NewQPushButton2("Save", nil)
+	saveButton.ConnectClicked(func(bool) {
+		newPathing := path_handler.Pathing{
+			NotesDir:      fields["NotesDir"].Text(),
+			ContentMd:     fields["ContentMd"].Text(),
+			KanjiMd:       fields["KanjiMd"].Text(),
+			SentencesMd:   fields["SentencesMd"].Text(),
+			WordsMd:       fields["WordsMd"].Text(),
+			ContentPath:   fields["ContentPath"].Text(),
+			KanjiPath:     fields["KanjiPath"].Text(),
+			SentencesPath: fields["SentencesPath"].Text(),
+			WordsPath:     fields["WordsPath"].Text(),
+			CsvPath:       fields["CsvPath"].Text(),
+			NewContent:    fields["NewContent"].Text(),
+		}
+
+		file, err := os.Create("pathing.json")
+		if err != nil {
+			widgets.QMessageBox_Critical(nil, "Error", "Failed to save pathing.json", widgets.QMessageBox__Ok, widgets.QMessageBox__Ok)
+			return
+		}
+		defer file.Close()
+		enc := json.NewEncoder(file)
+		enc.SetIndent("", "  ")
+		if err := enc.Encode(newPathing); err != nil {
+			widgets.QMessageBox_Critical(nil, "Error", "Failed to encode JSON", widgets.QMessageBox__Ok, widgets.QMessageBox__Ok)
+		}
+	})
+	runButton := widgets.NewQPushButton2("Run", nil)
+	runButton.ConnectClicked(func(bool) {
+		if modeRadioCsv.IsChecked() {
+			makeCSVs()
+		} else if modeRadioNotes.IsChecked() {
+			makeNotes()
+		} else {
+			makeNotes()
+			makeCSVs()
+		}
+		app.CloseAllWindows()
+	})
+
+	testButton := widgets.NewQPushButton2("Test (dev only)", nil) // <-- Easy to remove
+	testButton.ConnectClicked(func(bool) {
+		p := path_handler.TestPathing
+		fields["NotesDir"].SetText(p.NotesDir)
+		fields["ContentMd"].SetText(p.ContentMd)
+		fields["KanjiMd"].SetText(p.KanjiMd)
+		fields["SentencesMd"].SetText(p.SentencesMd)
+		fields["WordsMd"].SetText(p.WordsMd)
+		fields["ContentPath"].SetText(p.ContentPath)
+		fields["KanjiPath"].SetText(p.KanjiPath)
+		fields["SentencesPath"].SetText(p.SentencesPath)
+		fields["WordsPath"].SetText(p.WordsPath)
+		fields["CsvPath"].SetText(p.CsvPath)
+		fields["NewContent"].SetText(p.NewContent)
+	})
+	buttonRow := widgets.NewQHBoxLayout()
+	buttonRow.AddWidget(saveButton, 0, 0)
+	buttonRow.AddWidget(runButton, 0, 0)
+	buttonRow.AddWidget(testButton, 0, 0) // <-- Remove this line for production
+	layout.AddLayout(buttonRow, 0)
+
+	widget.SetLayout(layout)
+	window.SetCentralWidget(widget)
+	window.Show()
+
+	app.Exec()
 }

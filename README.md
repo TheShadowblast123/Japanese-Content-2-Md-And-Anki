@@ -2,25 +2,21 @@
 
 ## RoadMap
 
-### Path to functionality
-
-1. Acutally use the embeded data source for getting word and kanji data
-2. Setup build pipeline to automatically create releases on commit
-
 ### Path to User Friendliness
 1. Basic QT GUI
-2. Path Handling
+2. Path Handling (technically handled, still using testing shtuff)
 3. Abillity to add paths and files to check for new content
 4. Abillity to create Anki decks instead of Csvs
 
 ### Desired features
 1. Deconjugation to link long conjugation chains to the base verb and give more context
-	a. Needs to link from verb to verb
+	a. Needs to link from verb to verb and questioning desirabillity
 2. Working Cloze cards
 3. Translation
 
 ### Known bugs
-1. Sentences with 0 words will create files (should probably not exist) 
+1. Sentences with 0 words will create files (should probably not exist)
+2. I believe I know how to program
 
 ## Why Use This?
 ### Dogma
@@ -37,27 +33,27 @@ So I wanted something that:
  
  A solution for 2 is a solution for 1, this is why the input is .txt files of user selected Japanese content.
  
- Automation of gathering data using APIs and creating Flashcards with csvs is the solution for 3.
+ Automation of gathering data ~~using APIs~~ locally sourced data to not burden Jisho's servers and creating Flashcards with csvs is the solution for 3.
  
  Markdown is the answer for 4.
 
  
  And thus Japanese Content 2 Md And Anki was born.
 
-Learning Japanese can be a challenging yet rewarding journey, and effective study tools can significantly enhance the learning experience. Japanese Notes Automation was created with the following goals in mind:
 
-## Personal tips
+## Usage tips
 
 ### 1. Mind Maps:
 
-- As the Markdown was made with obsidian in mind, you can easily use its graph view to generate a mind map based on the inner links of all the notes files. This showss you all the connections for any given kanji, word, sentence, or piece of content.
+- As the Markdown was made with obsidian in mind, you can easily use its graph view to generate a mind map based on the inner links of all the notes files. This shows you all the connections for any given kanji, word, sentence, or piece of content.
 ### 2. Customize Translations and Definitions:
 
-- As this project is meant to be open source, I couldn't use anything other than google translate for the translations. It also naively takes only the first translation from jisho and sometimes the parser will incorrectly parse words. This is not a 0 effort program but one that makes the effort easier. Customize the definitions and translations as it makes sense. I suggest doing this BEFORE studying flashcards.
+- As this project is meant to be open source, I don't have much for translation options, but I want to add translation capabillities. Currently this version slings every definition at every word, I suggest personalizing each note that you come across with links and your own ttranslations.
+
 
 ### 3. Use pictures for objects:
 
-- Unless you need to practice typing because a picture is worth a thousand words. These are markdown files, they're meant for you to put images or anything else you can get working in them. Use this to your advantage.
+- Unless you need to practice typing because a picture is worth a thousand words. These are markdown files, they're meant for you to put images or anything else you can get working in them. Many Markdown previewers will show any images you add to a markdown file via links. Use this to your advantage.
 
 ### 4. Use content you love:
 
@@ -74,15 +70,15 @@ After running the script and generating your Japanese language learning notes, y
 	- **Kanji.md**
 	- **Words.md:**
 	- **Sentences.md:**
- 
+- These are effectively the database of your knowledge 
 
-- I suggest going through content from Content.md and scrollign down to the Sentence links and opening the first one you don't understand
+- I suggest going through content from Content.md and scrolling down to the Sentence links and opening the first one you don't understand
 - From there I suggest studying in this manner, assuming you have no knowledge:
 	- Sentence => ...Kanji => Word=> Next Kanji => Word => ... => Sentence
 	- You may or may not have to adjust the words as the parser is usually right but sometimes it's wrong
-	- You may also have to adjust the links as sometimes a word will link to itself instead of its kanji
-	- The translation of the sentence might not be suitable for the Content or for your mind, use translation services [DeepL](https://www.deepl.com/translator), [Jisho](https://jisho.org/), [Google Translate](https://translate.google.com/), (it's on'y bad in isolation), [ChatGPT](https://chat.openai.com/)
-	- Typically at this point, it'd be clear if there was a weird word translation. More than 80% of the time the word translation will be accurate but 80% is not 100%. If there's an oddity check secondary definitions in [Jisho](https://jisho.org/).
+	- ~~You may also have to adjust the links as sometimes a word will link to itself instead of its kanji~~
+		- this was a bug and it has been resolved
+	- The translation of the sentence, or currently the lack thereof, might not be suitable for the Content or for your mind, use translation services [DeepL](https://www.deepl.com/translator), [Jisho](https://jisho.org/), [Google Translate](https://translate.google.com/), (it's only bad in isolation), [ChatGPT](https://chat.openai.com/)
 	- Continue doing this until the end of your study session or until you've done every sentence.
 
 ### 2. Create Anki Flashcards (Optional):
@@ -92,7 +88,7 @@ After running the script and generating your Japanese language learning notes, y
 - If you're using Anki for flashcards, import the generated `.csv` files from the `Notes\Japanese Notes\CSV` directory
 - Use the flashcards to reinforce your memory
 
-### 4. Consistent Practice:
+### 3. Consistent Practice:
 
 - Either use the flashcards or the content itself to remember everything you've learned before
 
@@ -111,4 +107,5 @@ After running the script and generating your Japanese language learning notes, y
 
 
 ## How to Contribute
-All pull requests are welcome :)
+- All pull requests are welcome :)
+- please create an issue if you find a problem or desire a feature
